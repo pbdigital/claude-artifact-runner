@@ -1,0 +1,295 @@
+/* 
+  Module: Spelling Flashcard Transitions
+  This CSS file provides the 3D flip animation between the flashcard and spelling interface,
+  as well as a simple scale animation for a success celebration.
+*/
+
+/* Fun background animation */
+@keyframes gradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Rainbow shadow effect */
+.shadow-rainbow {
+  box-shadow: 
+    0 0 10px rgba(255, 0, 0, 0.2),
+    0 0 20px rgba(255, 165, 0, 0.2),
+    0 0 30px rgba(255, 255, 0, 0.2),
+    0 0 40px rgba(0, 255, 0, 0.2),
+    0 0 50px rgba(0, 0, 255, 0.2),
+    0 0 60px rgba(238, 130, 238, 0.2);
+}
+
+/* Floating animation */
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-5px); }
+  100% { transform: translateY(0px); }
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+/* Enhanced flip card styles */
+.flip-card-container {
+  perspective: 1000px;
+  margin: 20px auto;
+}
+
+.flip-card {
+  position: relative;
+  width: 100%;
+  transform-style: preserve-3d;
+  transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* Apply the flipped transformation when the 'flipped' class is present */
+.flip-card.flipped {
+  transform: rotateY(180deg);
+}
+
+/* Front and back sides of the card */
+.flip-card-front,
+.flip-card-back {
+  position: absolute;
+  width: 100%;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden; /* for Safari */
+  border-radius: 20px;
+  box-shadow: 
+    0 0 15px rgba(0, 0, 255, 0.2),
+    0 0 30px rgba(238, 130, 238, 0.2);
+  transition: box-shadow 0.3s ease;
+}
+
+.flip-card-front:hover,
+.flip-card-back:hover {
+  box-shadow: 
+    0 0 20px rgba(0, 0, 255, 0.3),
+    0 0 40px rgba(238, 130, 238, 0.3);
+}
+
+/* The back side is rotated 180deg so it shows on flip */
+.flip-card-back {
+  transform: rotateY(180deg);
+}
+
+/* Enhanced success animation */
+.animate-success {
+
+}
+
+@keyframes success-bounce {
+  0%, 100% { transform: scale(1); }
+  30% { transform: scale(1.15) rotate(5deg); }
+  60% { transform: scale(0.95) rotate(-5deg); }
+  80% { transform: scale(1.05) rotate(2deg); }
+}
+
+/* Glowing text effect */
+@keyframes glow {
+  0%, 100% { text-shadow: 0 0 5px rgba(255, 255, 255, 0.5); }
+  50% { text-shadow: 0 0 10px rgba(238, 130, 238, 0.3); }
+}
+
+.text-glow {
+  animation: glow 3s ease-in-out infinite;
+}
+
+/* Button hover effects */
+button {
+  transition: all 0.3s ease;
+  transform-style: preserve-3d;
+}
+
+button:hover {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+button:active {
+  transform: translateY(1px) scale(0.98);
+}
+
+/* Input field animation */
+input {
+  transition: all 0.3s ease;
+}
+
+input:focus {
+  transform: scale(1.02);
+  box-shadow: 0 0 15px rgba(238, 130, 238, 0.3);
+}
+
+/* Virtual Keyboard Styles */
+.virtual-keyboard {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin: 20px auto;
+  max-width: 600px;
+  padding: 15px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 15px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.letter-key {
+  width: 45px;
+  height: 45px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  font-weight: bold;
+  background: linear-gradient(145deg, #ffffff, #f0f0f0);
+  border: 2px solid #e0e0e0;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.letter-key:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  background: linear-gradient(145deg, #f0f0f0, #ffffff);
+}
+
+.letter-key:active {
+  transform: translateY(1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.letter-key.used {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.letter-key.backspace {
+  width: 70px;
+  background: linear-gradient(145deg, #ff9999, #ff6666);
+  color: white;
+  border-color: #ff6666;
+}
+
+.letter-key.submit {
+  width: 90px;
+  background: linear-gradient(145deg, #66cc99, #4CAF50);
+  color: white;
+  border-color: #4CAF50;
+}
+
+/* Add iPad-specific touch feedback */
+@media (hover: none) and (pointer: coarse) {
+  .letter-key {
+    min-width: 50px;
+    min-height: 50px;
+    font-size: 1.4rem;
+  }
+  
+  .letter-key:active {
+    background: #e0e0e0;
+    transform: scale(0.95);
+  }
+}
+
+/* Current Guess Box Styles */
+.current-guess-row {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin: 20px 0;
+}
+
+.guess-box {
+  width: 50px;
+  height: 50px;
+  border: 3px solid #e0e0e0;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8rem;
+  font-weight: bold;
+  background: white;
+  color: #4a5568;
+  transition: all 0.2s ease;
+}
+
+.guess-box.active {
+  border-color: #4CAF50;
+  box-shadow: 0 0 10px rgba(76, 175, 80, 0.3);
+  animation: pulse 1.5s infinite;
+}
+
+.guess-box.filled {
+  border-color: #3b82f6;
+  background: linear-gradient(145deg, #ffffff, #f0f0f0);
+  transform: scale(1.05);
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+/* Letter Fly Animation */
+@keyframes flyToHistory {
+  0% {
+    transform: scale(1) translateY(0) translateX(0);
+    opacity: 1;
+  }
+  40% {
+    transform: scale(1.4) translateY(-100px) translateX(-20px);
+    opacity: 0.9;
+  }
+  60% {
+    transform: scale(1.2) translateY(-150px) translateX(20px);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(1) translateY(-200px) translateX(0);
+    opacity: 0;
+  }
+}
+
+.letter-fly {
+  position: fixed;
+  font-size: 2rem;
+  font-weight: bold;
+  pointer-events: none;
+  z-index: 100;
+  animation: flyToHistory 1s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+/* Add staggered animation delays for each letter */
+.letter-fly:nth-child(1) { animation-delay: 0s; }
+.letter-fly:nth-child(2) { animation-delay: 0.1s; }
+.letter-fly:nth-child(3) { animation-delay: 0.2s; }
+.letter-fly:nth-child(4) { animation-delay: 0.3s; }
+.letter-fly:nth-child(5) { animation-delay: 0.4s; }
+.letter-fly:nth-child(6) { animation-delay: 0.5s; }
+.letter-fly:nth-child(7) { animation-delay: 0.6s; }
+.letter-fly:nth-child(8) { animation-delay: 0.7s; }
+.letter-fly:nth-child(9) { animation-delay: 0.8s; }
+.letter-fly:nth-child(10) { animation-delay: 0.9s; }
+
+/* Add a nice trail effect */
+.letter-fly::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(to bottom, rgba(76, 175, 80, 0.2), transparent);
+  transform: translateY(10px) scale(1.5);
+  filter: blur(4px);
+  opacity: 0.5;
+  pointer-events: none;
+} 
