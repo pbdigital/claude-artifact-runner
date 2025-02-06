@@ -75,20 +75,20 @@ const Celebration = () => {
 };
 
 // Virtual Keyboard component
-const VirtualKeyboard = ({ 
-  onLetterClick, 
-  onBackspace, 
-  onSubmit, 
+const VirtualKeyboard = ({
+  onLetterClick,
+  onBackspace,
+  onSubmit,
   currentGuess,
-  disabled 
-}: { 
+  disabled,
+}: {
   onLetterClick: (letter: string) => void;
   onBackspace: () => void;
   onSubmit: () => void;
   currentGuess: string;
   disabled: boolean;
 }) => {
-  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
   return (
     <div className="virtual-keyboard">
@@ -121,10 +121,10 @@ const VirtualKeyboard = ({
 };
 
 // Current guess row component
-const CurrentGuessRow = ({ 
-  word, 
-  currentGuess 
-}: { 
+const CurrentGuessRow = ({
+  word,
+  currentGuess,
+}: {
   word: string;
   currentGuess: string;
 }) => {
@@ -134,10 +134,10 @@ const CurrentGuessRow = ({
         <div
           key={index}
           className={`guess-box ${
-            index === currentGuess.length ? 'active' : ''
-          } ${index < currentGuess.length ? 'filled' : ''}`}
+            index === currentGuess.length ? "active" : ""
+          } ${index < currentGuess.length ? "filled" : ""}`}
         >
-          {index < currentGuess.length ? currentGuess[index] : ''}
+          {index < currentGuess.length ? currentGuess[index] : ""}
         </div>
       ))}
     </div>
@@ -145,11 +145,11 @@ const CurrentGuessRow = ({
 };
 
 // Add this new component for flying letters
-const FlyingLetter = ({ 
-  letter, 
-  startPosition, 
-  onAnimationEnd 
-}: { 
+const FlyingLetter = ({
+  letter,
+  startPosition,
+  onAnimationEnd,
+}: {
   letter: string;
   startPosition: { x: number; y: number };
   onAnimationEnd: () => void;
@@ -160,7 +160,7 @@ const FlyingLetter = ({
       style={{
         left: startPosition.x,
         top: startPosition.y,
-        color: '#4a5568' // Updated to match guess box text color
+        color: "#4a5568", // Updated to match guess box text color
       }}
       onAnimationEnd={onAnimationEnd}
     >
@@ -190,7 +190,7 @@ const SpellingFlashCardGame = () => {
   const [countdown, setCountdown] = useState<number>(5);
 
   // NEW: Global game timer state (2 minutes = 120 seconds)
-  const [globalTimer, setGlobalTimer] = useState<number>(125);
+  const [globalTimer, setGlobalTimer] = useState<number>(185);
 
   // Add new state for tracking rounds and dynamic difficulty:
   const [round, setRound] = useState<number>(1);
@@ -200,11 +200,13 @@ const SpellingFlashCardGame = () => {
   const currentTargetLength = 3 + Math.ceil(round / 4);
 
   // Add flying letters state
-  const [flyingLetters, setFlyingLetters] = useState<Array<{
-    letter: string;
-    position: { x: number; y: number };
-    id: string;
-  }>>([]);
+  const [flyingLetters, setFlyingLetters] = useState<
+    Array<{
+      letter: string;
+      position: { x: number; y: number };
+      id: string;
+    }>
+  >([]);
 
   const MAX_ATTEMPTS = 3;
 
@@ -278,6 +280,7 @@ const SpellingFlashCardGame = () => {
           clearInterval(timerInterval);
           setMessage("Time's up! Game Over!");
           setGameOver(true);
+          checkAndPromptHighScore();
           return 0;
         }
         return prevTimer - 1;
@@ -291,21 +294,21 @@ const SpellingFlashCardGame = () => {
     if (!currentWord) return;
 
     // Get the positions of the current guess boxes for the animation
-    const guessBoxes = document.querySelectorAll('.guess-box');
-    const positions = Array.from(guessBoxes).map(box => {
+    const guessBoxes = document.querySelectorAll(".guess-box");
+    const positions = Array.from(guessBoxes).map((box) => {
       const rect = box.getBoundingClientRect();
       return {
-        x: rect.left + (rect.width / 2) - 15, // Center the flying letter
-        y: rect.top + (rect.height / 2) - 15
+        x: rect.left + rect.width / 2 - 15, // Center the flying letter
+        y: rect.top + rect.height / 2 - 15,
       };
     });
 
     // Create flying letters
-    const letters = currentGuess.split('');
+    const letters = currentGuess.split("");
     const flyingLetters = letters.map((letter, index) => ({
       letter,
       position: positions[index],
-      id: `${letter}-${index}-${Date.now()}`
+      id: `${letter}-${index}-${Date.now()}`,
     }));
 
     // Set flying letters state
@@ -341,23 +344,30 @@ const SpellingFlashCardGame = () => {
       setGuessHistory([...guessHistory, currentGuess]);
       setAttempt(newAttempt);
       if (newAttempt >= MAX_ATTEMPTS) {
-        setMessage(`Game Over! The correct word was "${currentWord}". Final score: ${score}`);
-        setGameOver(true);
-        checkAndPromptHighScore();
+        setMessage(
+          `The correct word was "${currentWord}".`
+        );
+        setTimeout(() => {
+          setAnimateSuccess(false);
+          setShowCelebration(true);
+          setTimeout(() => {
+          startNewRound();
+          }, 2000);
+        }, 600);
       }
     }
-    setCurrentGuess('');
+    setCurrentGuess("");
   };
 
   // New handlers for virtual keyboard
   const handleLetterClick = (letter: string) => {
     if (currentGuess.length < currentWord.length) {
-      setCurrentGuess(prev => prev + letter);
+      setCurrentGuess((prev) => prev + letter);
     }
   };
 
   const handleBackspace = () => {
-    setCurrentGuess(prev => prev.slice(0, -1));
+    setCurrentGuess((prev) => prev.slice(0, -1));
   };
 
   // Checks if the final score qualifies for the leaderboard and, if so, prompts for the player's name.
@@ -391,7 +401,7 @@ const SpellingFlashCardGame = () => {
     setPlayerName("");
     setShowNamePrompt(false);
     setRound(1);
-    setGlobalTimer(120);
+    setGlobalTimer(185);
     startNewRound();
   };
 
@@ -402,13 +412,16 @@ const SpellingFlashCardGame = () => {
     return (
       <div className="flex justify-center gap-2">
         {Array.from({ length: totalCells }).map((_, index) => {
-          const expectedLetter = index < currentWord.length ? currentWord[index] : null;
+          const expectedLetter =
+            index < currentWord.length ? currentWord[index] : null;
           const guessedLetter = guess[index] || "";
           let cellClass = "";
           if (expectedLetter !== null) {
             if (!guessedLetter) {
               cellClass = "bg-red-500 text-white";
-            } else if (guessedLetter.toLowerCase() === expectedLetter.toLowerCase()) {
+            } else if (
+              guessedLetter.toLowerCase() === expectedLetter.toLowerCase()
+            ) {
               cellClass = "bg-green-500 text-white";
             } else {
               cellClass = "bg-gray-300 text-black";
@@ -418,7 +431,12 @@ const SpellingFlashCardGame = () => {
             cellClass = "bg-gray-300 text-black";
           }
           return (
-            <div key={index} className={`w-10 h-10 flex items-center justify-center border ${cellClass}`}>{guessedLetter.toUpperCase()}</div>
+            <div
+              key={index}
+              className={`w-10 h-10 flex items-center justify-center border ${cellClass}`}
+            >
+              {guessedLetter.toUpperCase()}
+            </div>
           );
         })}
       </div>
@@ -447,7 +465,7 @@ const SpellingFlashCardGame = () => {
   }${globalTimer % 60}`;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-purple-200 via-pink-100 to-blue-200 p-8">
+    <div className="min-h-screen bg-gradient-to-b from-purple-200 via-pink-100 to-blue-200 p-4">
       {/* Flying letters */}
       {flyingLetters.map(({ letter, position, id }) => (
         <FlyingLetter
@@ -455,18 +473,23 @@ const SpellingFlashCardGame = () => {
           letter={letter}
           startPosition={position}
           onAnimationEnd={() => {
-            setFlyingLetters(prev => prev.filter(l => l.id !== id));
+            setFlyingLetters((prev) => prev.filter((l) => l.id !== id));
           }}
         />
       ))}
-      
+
       <div className="flex justify-between items-start max-w-6xl mx-auto mb-8">
         {/* Left side: Leaderboard */}
         <div className="w-1/4 bg-white rounded-xl shadow-rainbow p-6 animate-float">
-          <h2 className="text-2xl font-bold text-purple-600 mb-4">🏆 Champions</h2>
+          <h2 className="text-2xl font-bold text-purple-600 mb-4">
+            🏆 Champions
+          </h2>
           <ul className="space-y-2">
             {leaderboard.map((entry, index) => (
-              <li key={index} className="border-b border-purple-100 py-2 flex justify-between items-center">
+              <li
+                key={index}
+                className="border-b border-purple-100 py-2 flex justify-between items-center"
+              >
                 <span className="font-bold text-purple-700">{entry.name}</span>
                 <span className="text-pink-500 font-bold">{entry.score}</span>
               </li>
@@ -476,15 +499,12 @@ const SpellingFlashCardGame = () => {
 
         {/* Center: Main game content */}
         <div className="w-2/4 px-8">
-          
           {/* NEW: Global game countdown timer */}
-          <div className="text-center mb-4">
-            <span className={`text-2xl font-bold ${globalTimer <= 10 ? "text-red-500" : "text-green-600"}`}>
-              Time Left: {formattedTime}
-            </span>
-          </div>
+
           <div
-            className={`flip-card-container ${animateSuccess ? "animate-success" : ""}`}
+            className={`flip-card-container ${
+              animateSuccess ? "animate-success" : ""
+            }`}
           >
             <div className={`flip-card ${flipped ? "flipped" : ""}`}>
               {/* Front of the card: Flashcard view */}
@@ -495,26 +515,34 @@ const SpellingFlashCardGame = () => {
               </div>
               {/* Back of the card: Spelling view */}
               <div className="flip-card-back bg-white p-8 rounded-lg shadow-lg">
-                <h2 className="text-2xl font-bold mb-4">Spell the word</h2>
-                <button
+                <div className="text-center mb-4">
+                  <span
+                    className={`text-2xl font-bold ${
+                      globalTimer <= 10 ? "text-red-500" : "text-green-600"
+                    }`}
+                  >
+                    Time Left: {formattedTime}
+                  </span>
+                </div>
+                {/* <button
                   type="button"
                   onClick={() => speakWord(currentWord)}
                   title="Replay pronunciation"
                   className="mb-4 text-blue-500 hover:underline"
                 >
                   Replay pronunciation
-                </button>
+                </button> */}
                 <div className="space-y-2 mb-4">
                   {guessHistory.map((guess, index) => (
                     <div key={index}>{renderGuessRow(guess)}</div>
                   ))}
-                  {Array.from({ length: MAX_ATTEMPTS - guessHistory.length }).map(
-                    (_, idx) => (
-                      <div key={idx}>{renderEmptyRow()}</div>
-                    )
-                  )}
+                  {Array.from({
+                    length: MAX_ATTEMPTS - guessHistory.length,
+                  }).map((_, idx) => (
+                    <div key={idx}>{renderEmptyRow()}</div>
+                  ))}
                 </div>
-                {message && <p className="mb-2 text-lg">{message}</p>}
+                {message && <p className="mb-2 text-lg text-center">{message}</p>}
                 {!gameOver && attempt < MAX_ATTEMPTS && (
                   <div className="flex flex-col items-center gap-4">
                     <CurrentGuessRow
@@ -533,7 +561,7 @@ const SpellingFlashCardGame = () => {
 
                 {gameOver && (
                   <div className="mt-4 p-4 border rounded bg-red-100">
-                    <h2 className="text-2xl font-bold">Game Over!</h2>
+                    <h2 className="text-2xl font-bold">Times Up!</h2>
                     <p>Your final score is {score}.</p>
                     {showNamePrompt && (
                       <div className="mt-2">
@@ -568,7 +596,9 @@ const SpellingFlashCardGame = () => {
         {/* Right side: Score */}
         <div className="w-1/4 bg-white rounded-xl shadow-rainbow p-6 animate-float">
           <div className="text-center">
-            <h2 className="text-2xl font-bold text-purple-600 mb-2">Your Score</h2>
+            <h2 className="text-2xl font-bold text-purple-600 mb-2">
+              Your Score
+            </h2>
             <div className="text-4xl font-bold text-pink-500 animate-pulse">
               {score}
             </div>

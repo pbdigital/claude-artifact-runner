@@ -36,7 +36,7 @@
 /* Enhanced flip card styles */
 .flip-card-container {
   perspective: 1000px;
-  margin: 20px auto;
+  margin: 0 auto;
 }
 
 .flip-card {
