@@ -189,8 +189,15 @@ const SpellingFlashCardGame = () => {
   const [showCelebration, setShowCelebration] = useState<boolean>(false);
   const [countdown, setCountdown] = useState<number>(5);
 
-  // NEW: Add state for dynamic difficulty
-  const [currentTargetLength] = useState<number>(4);
+  // NEW: Global game timer state (2 minutes = 120 seconds)
+  const [globalTimer, setGlobalTimer] = useState<number>(125);
+
+  // Add new state for tracking rounds and dynamic difficulty:
+  const [round, setRound] = useState<number>(1);
+  // Dynamic difficulty: increase target word length by 1 every 4 rounds.
+  // For rounds 1-4: Math.ceil(1/4)=1 so 3+1 = 4 letter words,
+  // rounds 5-8: 3+2 = 5 letters, etc.
+  const currentTargetLength = 3 + Math.ceil(round / 4);
 
   // Add flying letters state
   const [flyingLetters, setFlyingLetters] = useState<Array<{
@@ -262,6 +269,23 @@ const SpellingFlashCardGame = () => {
     }
   }, [countdown, flipped, currentWord]);
 
+  // NEW: Global game timer countdown: 2 minutes
+  useEffect(() => {
+    if (gameOver) return; // Don't run when game is over.
+    const timerInterval = setInterval(() => {
+      setGlobalTimer((prevTimer) => {
+        if (prevTimer <= 1) {
+          clearInterval(timerInterval);
+          setMessage("Time's up! Game Over!");
+          setGameOver(true);
+          return 0;
+        }
+        return prevTimer - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timerInterval);
+  }, [gameOver]);
+
   // Updated handleGuessSubmit to remove form event
   const handleGuessSubmit = () => {
     if (!currentWord) return;
@@ -293,12 +317,15 @@ const SpellingFlashCardGame = () => {
     }, 1000);
 
     if (currentGuess.toLowerCase() === currentWord.toLowerCase()) {
-      // Calculate points: each incorrect guess deducts 20 from 100 points
+      // Calculate points: each incorrect guess deducts 30 from 100 points
       const roundScore = Math.max(100 - attempt * 30, 0);
       setScore((prev) => prev + roundScore);
       setGuessHistory([...guessHistory, currentGuess]);
-     // setMessage(`Excellent spelling! 🎉 You earned ${roundScore} points.`);
+
       new Audio(successSound).play();
+
+      // Increment the round to increase the difficulty for the next round.
+      setRound((prev) => prev + 1);
 
       // Trigger success animation before starting the next round
       setAnimateSuccess(true);
@@ -317,8 +344,6 @@ const SpellingFlashCardGame = () => {
         setMessage(`Game Over! The correct word was "${currentWord}". Final score: ${score}`);
         setGameOver(true);
         checkAndPromptHighScore();
-      } else {
-       // setMessage('Not quite, try again!');
       }
     }
     setCurrentGuess('');
@@ -365,6 +390,8 @@ const SpellingFlashCardGame = () => {
     setGameOver(false);
     setPlayerName("");
     setShowNamePrompt(false);
+    setRound(1);
+    setGlobalTimer(120);
     startNewRound();
   };
 
@@ -414,6 +441,11 @@ const SpellingFlashCardGame = () => {
     );
   };
 
+  // Just before the return statement of SpellingFlashCardGame
+  const formattedTime = `${Math.floor(globalTimer / 60)}:${
+    globalTimer % 60 < 10 ? "0" : ""
+  }${globalTimer % 60}`;
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-purple-200 via-pink-100 to-blue-200 p-8">
       {/* Flying letters */}
@@ -444,13 +476,15 @@ const SpellingFlashCardGame = () => {
 
         {/* Center: Main game content */}
         <div className="w-2/4 px-8">
-          <h1 className="text-4xl font-bold mb-8 text-center text-purple-700 text-glow">
-            ✨ Spelling Magic ✨
-          </h1>
+          
+          {/* NEW: Global game countdown timer */}
+          <div className="text-center mb-4">
+            <span className={`text-2xl font-bold ${globalTimer <= 10 ? "text-red-500" : "text-green-600"}`}>
+              Time Left: {formattedTime}
+            </span>
+          </div>
           <div
-            className={`flip-card-container ${
-              animateSuccess ? "animate-success" : ""
-            }`}
+            className={`flip-card-container ${animateSuccess ? "animate-success" : ""}`}
           >
             <div className={`flip-card ${flipped ? "flipped" : ""}`}>
               {/* Front of the card: Flashcard view */}
