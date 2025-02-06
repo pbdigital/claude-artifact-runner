@@ -13,7 +13,7 @@
  * The module uses ES6, React hooks, and react-confetti.
  */
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import Confetti from "react-confetti";
 import successSound from "./success.mp3"; // Added import for the success sound
 // Import word pairs from the JSON file instead of inline constant
@@ -33,31 +33,6 @@ const speakWord = (word: string) => {
     utterance.lang = "en-US";
     window.speechSynthesis.speak(utterance);
   }
-};
-
-// New helper function to generate detailed error feedback for spelling attempts
-/**
- * Generates detailed error feedback for a misspelled word.
- *
- * Compares the expected word with the user input and provides specific feedback.
- * If lengths differ, it indicates a letter count mismatch; otherwise, it points out the first incorrect letter.
- *
- * @param expected - The correct word expected.
- * @param input - The user-provided word.
- * @returns A string with detailed feedback.
- */
-const getSpellingErrorFeedback = (expected: string, input: string): string => {
-  if (input.length !== expected.length) {
-    return `Your word has ${input.length} letters, but it should have ${expected.length}.`;
-  }
-  for (let i = 0; i < expected.length; i++) {
-    if (expected[i].toLowerCase() !== input[i].toLowerCase()) {
-      return `The letter at position ${i + 1} should be "${
-        expected[i]
-      }" but you typed "${input[i]}".`;
-    }
-  }
-  return "There might be an issue with the letter order.";
 };
 
 // Celebration component providing a confetti animation.
@@ -215,8 +190,7 @@ const SpellingFlashCardGame = () => {
   const [countdown, setCountdown] = useState<number>(5);
 
   // NEW: Add state for dynamic difficulty
-  const [currentTargetLength, setCurrentTargetLength] = useState<number>(4);
-  const [successfulCount, setSuccessfulCount] = useState<number>(0);
+  const [currentTargetLength] = useState<number>(4);
 
   // Add flying letters state
   const [flyingLetters, setFlyingLetters] = useState<Array<{
@@ -325,16 +299,6 @@ const SpellingFlashCardGame = () => {
       setGuessHistory([...guessHistory, currentGuess]);
      // setMessage(`Excellent spelling! 🎉 You earned ${roundScore} points.`);
       new Audio(successSound).play();
-
-      // Update success count and increase difficulty if needed
-      setSuccessfulCount((prevCount) => {
-        const newCount = prevCount + 1;
-        if (newCount === 4) {
-          setCurrentTargetLength((prevLength) => prevLength + 1);
-          return 0; // reset counter after 4 successes
-        }
-        return newCount;
-      });
 
       // Trigger success animation before starting the next round
       setAnimateSuccess(true);
