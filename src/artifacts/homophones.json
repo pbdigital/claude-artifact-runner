@@ -1,0 +1,603 @@
+[
+    {
+      "word1": "bare",
+      "word2": "bear",
+      "tip1": "The tree branches were bare in winter.",
+      "tip2": "I saw a bear in the forest."
+    },
+    {
+      "word1": "pair",
+      "word2": "pear",
+      "tip1": "I bought a pair of shoes.",
+      "tip2": "The pear was sweet and juicy."
+    },
+    {
+      "word1": "flour",
+      "word2": "flower",
+      "tip1": "We need flour to bake cookies.",
+      "tip2": "The flower bloomed in spring."
+    },
+    {
+      "word1": "hear",
+      "word2": "here",
+      "tip1": "Can you hear the birds singing?",
+      "tip2": "Please come over here."
+    },
+    {
+      "word1": "there",
+      "word2": "their",
+      "tip1": "Put the book over there.",
+      "tip2": "Their house is blue."
+    },
+    {
+      "word1": "write",
+      "word2": "right",
+      "tip1": "I like to write stories.",
+      "tip2": "Turn right at the corner."
+    },
+    {
+      "word1": "sun",
+      "word2": "son",
+      "tip1": "The sun shines brightly in the sky.",
+      "tip2": "My son loves to play outside."
+    },
+    {
+      "word1": "peace",
+      "word2": "piece",
+      "tip1": "We prayed for peace during the conflict.",
+      "tip2": "I would like a piece of cake."
+    },
+    {
+      "word1": "see",
+      "word2": "sea",
+      "tip1": "I see the rainbow in the sky.",
+      "tip2": "The sea was calm and blue."
+    },
+    {
+      "word1": "knight",
+      "word2": "night",
+      "tip1": "The brave knight fought the dragon.",
+      "tip2": "The stars appeared at night."
+    },
+    {
+      "word1": "ate",
+      "word2": "eight",
+      "tip1": "I ate a delicious sandwich for lunch.",
+      "tip2": "There are eight apples on the table."
+    },
+    {
+      "word1": "sale",
+      "word2": "sail",
+      "tip1": "The store had a big sale today.",
+      "tip2": "The boat began to sail across the lake."
+    },
+    {
+      "word1": "allowed",
+      "word2": "aloud",
+      "tip1": "He was allowed to stay up late.",
+      "tip2": "Please read the passage aloud."
+    },
+    {
+      "word1": "weak",
+      "word2": "week",
+      "tip1": "The medicine made me feel weak.",
+      "tip2": "We spent a week at the beach."
+    },
+    {
+      "word1": "principal",
+      "word2": "principle",
+      "tip1": "The principal of the school gave a speech.",
+      "tip2": "Honesty is an important principle."
+    },
+    {
+      "word1": "blue",
+      "word2": "blew",
+      "tip1": "The sky was a clear blue.",
+      "tip2": "The wind blew strongly today."
+    },
+    {
+      "word1": "cent",
+      "word2": "scent",
+      "tip1": "A cent is a unit of currency.",
+      "tip2": "The flower's scent was delightful."
+    },
+    {
+      "word1": "dear",
+      "word2": "deer",
+      "tip1": "She wrote a letter to her dear friend.",
+      "tip2": "A deer was seen in the forest."
+    },
+    {
+      "word1": "hole",
+      "word2": "whole",
+      "tip1": "There is a hole in my sock.",
+      "tip2": "I ate the whole pie."
+    },
+    {
+      "word1": "mail",
+      "word2": "male",
+      "tip1": "I received mail in the mailbox.",
+      "tip2": "The male lion roared loudly."
+    },
+    {
+      "word1": "meet",
+      "word2": "meat",
+      "tip1": "Let's meet at the park.",
+      "tip2": "I cooked a delicious piece of meat."
+    },
+    {
+      "word1": "morning",
+      "word2": "mourning",
+      "tip1": "I had a nice cup of coffee in the morning.",
+      "tip2": "The family was in mourning after the loss."
+    },
+    {
+      "word1": "read",
+      "word2": "red",
+      "tip1": "I like to read books before bed.",
+      "tip2": "The apple was bright red."
+    },
+    {
+      "word1": "rain",
+      "word2": "reign",
+      "tip1": "The rain poured down all afternoon.",
+      "tip2": "The king's reign lasted for decades."
+    },
+    {
+      "word1": "cell",
+      "word2": "sell",
+      "tip1": "The battery is in the cell of my phone.",
+      "tip2": "I plan to sell my old books."
+    },
+    {
+      "word1": "steal",
+      "word2": "steel",
+      "tip1": "Don't try to steal the candy.",
+      "tip2": "The building was made of strong steel."
+    },
+    {
+      "word1": "time",
+      "word2": "thyme",
+      "tip1": "Time flies when you're having fun.",
+      "tip2": "I added thyme to the soup for flavor."
+    },
+    {
+      "word1": "stare",
+      "word2": "stair",
+      "tip1": "Don't just stare at the painting.",
+      "tip2": "Be careful when you climb the stair."
+    },
+    {
+      "word1": "weather",
+      "word2": "whether",
+      "tip1": "The weather is sunny today.",
+      "tip2": "I don't know whether to laugh or cry."
+    },
+    {
+      "word1": "plane",
+      "word2": "plain",
+      "tip1": "We boarded the plane for our trip.",
+      "tip2": "The dress had a plain design."
+    },
+    {
+      "word1": "fare",
+      "word2": "fair",
+      "tip1": "The bus fare is two dollars.",
+      "tip2": "The county fair has many fun rides."
+    },
+    {
+      "word1": "berry",
+      "word2": "bury",
+      "tip1": "I picked a ripe berry from the bush.",
+      "tip2": "We need to bury the treasure."
+    },
+    {
+      "word1": "for",
+      "word2": "four",
+      "tip1": "I bought a gift for my friend.",
+      "tip2": "There are four seasons in a year."
+    },
+    {
+      "word1": "dye",
+      "word2": "die",
+      "tip1": "I will dye my hair a new color.",
+      "tip2": "Every living thing will eventually die."
+    },
+    {
+      "word1": "tail",
+      "word2": "tale",
+      "tip1": "The dog wagged its tail happily.",
+      "tip2": "Grandma told a wonderful tale."
+    },
+    {
+      "word1": "knot",
+      "word2": "not",
+      "tip1": "She tied a knot in the rope.",
+      "tip2": "I am not going to the park today."
+    },
+    {
+      "word1": "one",
+      "word2": "won",
+      "tip1": "I have one apple.",
+      "tip2": "He won the game yesterday."
+    },
+    {
+      "word1": "soar",
+      "word2": "sore",
+      "tip1": "The eagle can soar high in the sky.",
+      "tip2": "My muscles are sore after the workout."
+    },
+    {
+      "word1": "sight",
+      "word2": "site",
+      "tip1": "The view was a beautiful sight.",
+      "tip2": "The construction site is busy today."
+    },
+    {
+      "word1": "break",
+      "word2": "brake",
+      "tip1": "I need a break from my work.",
+      "tip2": "Don't forget to use the brake when stopping."
+    },
+    {
+      "word1": "ring",
+      "word2": "wring",
+      "tip1": "She wore a sparkling ring on her finger.",
+      "tip2": "You need to wring out the wet cloth."
+    },
+    {
+      "word1": "road",
+      "word2": "rode",
+      "tip1": "The road is long and winding.",
+      "tip2": "She rode her bike to school."
+    },
+    {
+      "word1": "sew",
+      "word2": "so",
+      "tip1": "I will sew a new dress.",
+      "tip2": "It is so beautiful outside."
+    },
+    {
+      "word1": "heal",
+      "word2": "heel",
+      "tip1": "Time will heal all wounds.",
+      "tip2": "My shoe has a broken heel."
+    },
+    {
+      "word1": "waste",
+      "word2": "waist",
+      "tip1": "Don't waste your time.",
+      "tip2": "She wore a belt around her waist."
+    },
+    {
+      "word1": "muscle",
+      "word2": "mussel",
+      "tip1": "He worked hard to build muscle.",
+      "tip2": "We had mussel soup for dinner."
+    },
+    {
+      "word1": "pore",
+      "word2": "pour",
+      "tip1": "I need to pore over my homework.",
+      "tip2": "Please pour some juice into the glass."
+    },
+    {
+      "word1": "main",
+      "word2": "mane",
+      "tip1": "The main street is busy today.",
+      "tip2": "The lion's mane is impressive."
+    },
+    {
+      "word1": "cereal",
+      "word2": "serial",
+      "tip1": "I ate cereal for breakfast.",
+      "tip2": "The serial number is printed on the box."
+    },
+    {
+      "word1": "two",
+      "word2": "too",
+      "tip1": "I have two apples.",
+      "tip2": "I want to go too."
+    },
+    {
+      "word1": "hour",
+      "word2": "our",
+      "tip1": "It took an hour to finish the race.",
+      "tip2": "This is our house."
+    },
+    {
+      "word1": "foul",
+      "word2": "fowl",
+      "tip1": "The referee called a foul in the game.",
+      "tip2": "We saw a beautiful fowl in the park."
+    },
+    {
+      "word1": "complement",
+      "word2": "compliment",
+      "tip1": "This sauce is a perfect complement to the meal.",
+      "tip2": "She gave him a nice compliment on his work."
+    },
+    {
+      "word1": "stationary",
+      "word2": "stationery",
+      "tip1": "The car remained stationary at the red light.",
+      "tip2": "I bought new stationery for school."
+    },
+    {
+      "word1": "wait",
+      "word2": "weight",
+      "tip1": "Please wait for your turn.",
+      "tip2": "She lifted a heavy weight at the gym."
+    },
+    {
+      "word1": "mind",
+      "word2": "mined",
+      "tip1": "Don't mind the noise.",
+      "tip2": "The miners mined coal from the earth."
+    },
+    {
+      "word1": "soul",
+      "word2": "sole",
+      "tip1": "Music touches the soul.",
+      "tip2": "The sole of my shoe is worn out."
+    },
+    {
+      "word1": "witch",
+      "word2": "which",
+      "tip1": "The witch cast a spell.",
+      "tip2": "Which color do you prefer?"
+    },
+    {
+      "word1": "aisle",
+      "word2": "isle",
+      "tip1": "The bride walked down the aisle.",
+      "tip2": "They visited a small isle during vacation."
+    },
+    {
+      "word1": "pause",
+      "word2": "paws",
+      "tip1": "Please pause the movie.",
+      "tip2": "The cat softly tapped its paws."
+    },
+    {
+      "word1": "tire",
+      "word2": "tyre",
+      "tip1": "My car tire needs air.",
+      "tip2": "In the UK, they use the word tyre."
+    },
+    {
+      "word1": "peek",
+      "word2": "peak",
+      "tip1": "Take a quick peek at the surprise.",
+      "tip2": "We reached the peak of the mountain."
+    },
+    {
+      "word1": "council",
+      "word2": "counsel",
+      "tip1": "The city council met last night.",
+      "tip2": "She sought counsel from her teacher."
+    },
+    {
+      "word1": "pail",
+      "word2": "pale",
+      "tip1": "Fill the pail with water.",
+      "tip2": "She looked pale after being sick."
+    },
+    {
+      "word1": "scene",
+      "word2": "seen",
+      "tip1": "The scene in the movie was exciting.",
+      "tip2": "Have you seen my keys?"
+    },
+    {
+      "word1": "pray",
+      "word2": "prey",
+      "tip1": "They gather to pray every evening.",
+      "tip2": "The lion stalked its prey."
+    },
+    {
+      "word1": "peer",
+      "word2": "pier",
+      "tip1": "She is a peer of the royal family.",
+      "tip2": "We took a walk along the pier."
+    },
+    {
+      "word1": "stake",
+      "word2": "steak",
+      "tip1": "They drove a stake into the ground.",
+      "tip2": "I ordered a juicy steak for dinner."
+    },
+    {
+      "word1": "seam",
+      "word2": "seem",
+      "tip1": "The seam of the dress is visible.",
+      "tip2": "It may seem difficult at first."
+    },
+    {
+      "word1": "flea",
+      "word2": "flee",
+      "tip1": "The flea jumped off the dog.",
+      "tip2": "They had to flee when the storm approached."
+    },
+    {
+      "word1": "gait",
+      "word2": "gate",
+      "tip1": "His gait was smooth and confident.",
+      "tip2": "She opened the gate to the garden."
+    },
+    {
+      "word1": "currant",
+      "word2": "current",
+      "tip1": "I used currants in the recipe.",
+      "tip2": "The river has a strong current."
+    },
+    {
+      "word1": "flair",
+      "word2": "flare",
+      "tip1": "She has a flair for fashion.",
+      "tip2": "The campfire began to flare up suddenly."
+    },
+    {
+      "word1": "groan",
+      "word2": "grown",
+      "tip1": "He let out a loud groan.",
+      "tip2": "She has grown taller over the summer."
+    },
+    {
+      "word1": "idle",
+      "word2": "idol",
+      "tip1": "The machine was left idle.",
+      "tip2": "She looked up to her idol."
+    },
+    {
+      "word1": "none",
+      "word2": "nun",
+      "tip1": "None of the cookies were left.",
+      "tip2": "The nun walked quietly through the hall."
+    },
+    {
+      "word1": "oar",
+      "word2": "or",
+      "tip1": "He used an oar to row the boat.",
+      "tip2": "Would you like tea or coffee?"
+    },
+    {
+      "word1": "praise",
+      "word2": "prays",
+      "tip1": "The teacher gave praise for a job well done.",
+      "tip2": "She prays every morning before breakfast."
+    },
+    {
+      "word1": "sent",
+      "word2": "scent",
+      "tip1": "She sent a birthday card.",
+      "tip2": "The scent of pine filled the air."
+    },
+    {
+      "word1": "vain",
+      "word2": "vein",
+      "tip1": "He is so vain about his looks.",
+      "tip2": "The nurse took blood from his vein."
+    },
+    {
+      "word1": "waive",
+      "word2": "wave",
+      "tip1": "They will waive the fee this time.",
+      "tip2": "She gave a friendly wave."
+    },
+    {
+      "word1": "cymbal",
+      "word2": "symbol",
+      "tip1": "The drummer hit the cymbal.",
+      "tip2": "The heart is a symbol of love."
+    },
+    {
+      "word1": "ewe",
+      "word2": "yew",
+      "tip1": "The ewe grazed in the field.",
+      "tip2": "The yew tree is very old."
+    },
+    {
+      "word1": "flier",
+      "word2": "flyer",
+      "tip1": "He handed out a flier about the event.",
+      "tip2": "The flyer had bright colors and bold text."
+    },
+    {
+      "word1": "grate",
+      "word2": "great",
+      "tip1": "Please grate the cheese for the pasta.",
+      "tip2": "You did a great job on your homework."
+    },
+    {
+      "word1": "knead",
+      "word2": "need",
+      "tip1": "I will knead the dough for the bread.",
+      "tip2": "I need a glass of water."
+    },
+    {
+      "word1": "reek",
+      "word2": "wreak",
+      "tip1": "The garbage began to reek.",
+      "tip2": "The storm threatened to wreak havoc on the town."
+    },
+    {
+      "word1": "pane",
+      "word2": "pain",
+      "tip1": "The window pane was cracked.",
+      "tip2": "He winced in pain."
+    },
+    {
+      "word1": "rows",
+      "word2": "rose",
+      "tip1": "The farmer planted rows of corn.",
+      "tip2": "She received a rose on Valentine's Day."
+    },
+    {
+      "word1": "boar",
+      "word2": "bore",
+      "tip1": "The wild boar roamed the forest.",
+      "tip2": "The lecture began to bore the audience."
+    },
+    {
+      "word1": "heir",
+      "word2": "air",
+      "tip1": "The princess was the heir to the throne.",
+      "tip2": "The air is fresh in the mountains."
+    },
+    {
+      "word1": "leak",
+      "word2": "leek",
+      "tip1": "There is a leak in the roof.",
+      "tip2": "She added leek to the soup for extra flavor."
+    },
+    {
+      "word1": "yolk",
+      "word2": "yoke",
+      "tip1": "The egg yolk is rich in nutrients.",
+      "tip2": "The farmer put a yoke on the oxen."
+    },
+    {
+      "word1": "chord",
+      "word2": "cord",
+      "tip1": "She played a chord on the guitar.",
+      "tip2": "The lamp is connected by a power cord."
+    },
+    {
+      "word1": "dosed",
+      "word2": "dozed",
+      "tip1": "He dosed his medicine carefully.",
+      "tip2": "She dozed off during the movie."
+    },
+    {
+      "word1": "moose",
+      "word2": "mousse",
+      "tip1": "A moose wandered into the forest.",
+      "tip2": "She enjoyed chocolate mousse for dessert."
+    },
+    {
+      "word1": "yore",
+      "word2": "your",
+      "tip1": "Stories of yore are fascinating.",
+      "tip2": "Is that your backpack?"
+    },
+    {
+      "word1": "suite",
+      "word2": "sweet",
+      "tip1": "The hotel offered a luxurious suite.",
+      "tip2": "The cake was very sweet."
+    },
+    {
+      "word1": "buy",
+      "word2": "bye",
+      "tip1": "I will buy a new toy.",
+      "tip2": "She said bye to her friend."
+    },
+    {
+      "word1": "roe",
+      "word2": "row",
+      "tip1": "The chef prepared salmon roe.",
+      "tip2": "They sat in a row at the theater."
+    }
+  ]
+  
