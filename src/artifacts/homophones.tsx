@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import  { useState, useEffect } from 'react';
 import { Volume2 } from 'lucide-react';
 import Confetti from 'react-confetti';
 import successSound from './success.mp3';
@@ -105,9 +105,10 @@ const HomophoneMemoryGame = () => {
   const [incorrectAttempts, setIncorrectAttempts] = useState(0);
   const [currentPair, setCurrentPair] = useState<CurrentPair | null>(null);
   const [showTip, setShowTip] = useState(false);
-
+  
   // Handle card click
   const handleCardClick = (clickedCard: Card) => {
+
     if (
       isChecking ||
       flippedCards.length === 2 ||
@@ -196,6 +197,7 @@ const HomophoneMemoryGame = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-pink-100 to-purple-200 p-8">
+      {incorrectAttempts}
       {showCelebration && <Celebration />}
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-8">

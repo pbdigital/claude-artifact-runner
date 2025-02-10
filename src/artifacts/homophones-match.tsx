@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import homophonePairs from './homophones.json';
 import '../styles/globals.css';
 
