@@ -576,7 +576,7 @@ const SpellingFlashCardGame = () => {
         {/* Left side: Leaderboard */}
         <div className="w-1/4 bg-white rounded-xl shadow-rainbow p-6 animate-float">
           <h2 className="text-2xl font-bold text-purple-600 mb-4">
-            🏆 Champions
+            🏆 High Scores
           </h2>
           <ul className="space-y-2">
             {leaderboard.map((entry, index) => (
