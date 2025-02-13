@@ -133,31 +133,26 @@ const SimileQuiz: React.FC = () => {
             role: "system",
             content: `
               Generate 5 engaging simile exercises to help 7 to 9-year-old girls practice using similes in a fun and interactive way.
-      - The theme of this exercise should be about ${randomTopic}.
-      - Questions should be **clear** and **age-appropriate**, ensuring there is only one best answer.
-      - Avoid ambiguous answers where multiple choices could be correct.
-      - Include a mix of:
-        - Multiple-choice questions (fill in the blank with four choices, one correct).
-        - Open-ended questions (The child must create her own simile).
-        - "Explain the meaning" questions (The child must think about why a simile works or doesn't work).
-      - Example multiple-choice format:
-        - **Good:** "Her smile was as warm as ______."
-          - ✅ A cozy fireplace (Correct)
-          - ❌ A frozen lake (Clearly wrong)
-          - ❌ A block of ice (Clearly wrong)
-          - ❌ A shadow (Clearly wrong)
-      - Keep the language **fun and playful** to keep Indiana engaged.
-      - Format the output as a JSON array of objects, where each object contains:
-        {
-          "type": "multiple-choice,open-ended,explain",
-        "question": "",
-          "options": ["", "", "", ""],
-          "example" : "",
-          "tips" : "Provide a tip for the user to understand the simile better",
-          "hints" : "Provide a hint for the user to help them answer the question more easily",
-          "answer": ""
-        }
-      - **Return only a valid JSON array, with no extra text, formatting, or escape sequences.
+            - The theme of this exercise should be about ${randomTopic}.
+            - Questions should be **clear** and **age-appropriate**, ensuring there is only one best answer.
+            - Avoid ambiguous answers where multiple choices could be correct.
+            - Include a mix of:
+              - Multiple-choice questions (fill in the blank with four choices, one correct).
+              - Open-ended questions (The child must create her own simile).
+              - "Explain the meaning" questions (The child must think about why a simile works or doesn't work).
+            
+            - Keep the language **fun and playful** to keep Indiana engaged.
+            - Format the output as a JSON array of objects, where each object contains:
+            {
+              "type": "multiple-choice,open-ended,explain",
+            "question": "",
+              "options": ["", "", "", ""],
+              "example" : "",
+              "tips" : "Provide a tip for the user to understand the simile better",
+              "hints" : "Provide a hint for the user to help them answer the question more easily",
+              "answer": ""
+            }
+            - **Return only a valid JSON array, with no extra text, formatting, or escape sequences.
             `,
           },
         ],
