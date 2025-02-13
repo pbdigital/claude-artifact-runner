@@ -29,7 +29,7 @@ import "./spelling-flash-card.css"; // <-- NEW: Import the CSS for flip animatio
 // Function to speak the word (used during the spelling prompt)
 const speakWord = (word: string) => {
   if (word && "speechSynthesis" in window) {
-    const utterance = new SpeechSynthesisUtterance(word);
+    const utterance = new SpeechSynthesisUtterance('Spell the word.... "' + word + '".');
     utterance.lang = "en-US";
     window.speechSynthesis.speak(utterance);
   }
@@ -187,17 +187,15 @@ const SpellingFlashCardGame = () => {
   >([]);
   const [message, setMessage] = useState<string>("");
   const [showCelebration, setShowCelebration] = useState<boolean>(false);
-  const [countdown, setCountdown] = useState<number>(5);
+  // NEW: state for settings and game start
+  const [gameStarted, setGameStarted] = useState<boolean>(false);
+  const [selectedDisplayTime, setSelectedDisplayTime] = useState<number | null>(null);
+  const [selectedSessionDuration, setSelectedSessionDuration] = useState<number | null>(null);
+  const [settingsError, setSettingsError] = useState<string>("");
 
-  // NEW: Global game timer state (2 minutes = 120 seconds)
-  const [globalTimer, setGlobalTimer] = useState<number>(185);
-
-  // Add new state for tracking rounds and dynamic difficulty:
-  const [round, setRound] = useState<number>(1);
-  // Dynamic difficulty: increase target word length by 1 every 4 rounds.
-  // For rounds 1-4: Math.ceil(1/4)=1 so 3+1 = 4 letter words,
-  // rounds 5-8: 3+2 = 5 letters, etc.
-  const currentTargetLength = 3 + Math.ceil(round / 4);
+  // NEW: Initialize timers based on settings; defaults to 0 until game starts.
+  const [countdown, setCountdown] = useState<number>(0);
+  const [globalTimer, setGlobalTimer] = useState<number>(0);
 
   // Add flying letters state
   const [flyingLetters, setFlyingLetters] = useState<
@@ -210,11 +208,9 @@ const SpellingFlashCardGame = () => {
 
   const MAX_ATTEMPTS = 3;
 
-  // Initialize a new round upon component mount.
-  useEffect(() => {
-    startNewRound();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // Initialize a new round upon component mount
+  // Remove initial startNewRound call; start later when gameStarted is true.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
 
   // Load leaderboard from localStorage on component mount
   useEffect(() => {
@@ -224,56 +220,35 @@ const SpellingFlashCardGame = () => {
     }
   }, []);
 
-  // Updated: Select a random word based on the current target length.
-  const startNewRound = () => {
-    // Filter available word pairs by the target word length.
-    let availablePairs = wordPairs.filter(
-      (pair) => pair.word.length === currentTargetLength
-    );
-    // Fallback to words with closest length if no exact match found.
-    if (availablePairs.length === 0) {
-      const diffs = wordPairs.map((pair) =>
-        Math.abs(pair.word.length - currentTargetLength)
-      );
-      const minDiff = Math.min(...diffs);
-      availablePairs = wordPairs.filter(
-        (pair) => Math.abs(pair.word.length - currentTargetLength) === minDiff
-      );
+  // NEW: When gameStarted becomes true, initialize timers and start the first round.
+  useEffect(() => {
+    if (gameStarted) {
+      // Set timers based on selected settings
+      setCountdown(selectedDisplayTime as number);
+      setGlobalTimer((selectedSessionDuration as number) * 60);
+      startNewRound();
     }
-    const randomPair =
-      availablePairs[Math.floor(Math.random() * availablePairs.length)];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameStarted]);
+
+  const startNewRound = () => {
+    // NEW: Randomly select a word pair from the entire pool instead of filtering by word length.
+    const randomPair = wordPairs[Math.floor(Math.random() * wordPairs.length)];
     setCurrentWord(randomPair.word);
 
     // Reset flip state, countdown, guess history, attempt and message for the new round.
     setFlipped(false);
-    setCountdown(5);
+    setCountdown(selectedDisplayTime as number);
     setCurrentGuess("");
     setGuessHistory([]);
     setAttempt(0);
     setMessage("");
   };
 
-  // Countdown effect: When flashcard is visible, start a 5-second countdown.
+  // NEW: Global game timer countdown
   useEffect(() => {
-    if (!flipped) {
-      const intervalId = setInterval(() => {
-        setCountdown((prev) => prev - 1);
-      }, 1000);
-      return () => clearInterval(intervalId);
-    }
-  }, [flipped]);
+    if (!gameStarted || gameOver) return; // Don't run if game hasn't started or is over
 
-  // When countdown reaches 0, flip the card and play the word's pronunciation.
-  useEffect(() => {
-    if (!flipped && countdown <= 0) {
-      setFlipped(true);
-      speakWord(currentWord);
-    }
-  }, [countdown, flipped, currentWord]);
-
-  // NEW: Global game timer countdown: 2 minutes
-  useEffect(() => {
-    if (gameOver) return; // Don't run when game is over.
     const timerInterval = setInterval(() => {
       setGlobalTimer((prevTimer) => {
         if (prevTimer <= 1) {
@@ -287,9 +262,32 @@ const SpellingFlashCardGame = () => {
       });
     }, 1000);
     return () => clearInterval(timerInterval);
-  }, [gameOver]);
+  }, [gameStarted, gameOver]);
 
-  // Updated handleGuessSubmit to remove form event
+  // Countdown effect: When flashcard is visible, start countdown
+  useEffect(() => {
+    if (!gameStarted || flipped) return; // Don't run if game hasn't started or card is flipped
+
+    const intervalId = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(intervalId);
+          setFlipped(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(intervalId);
+  }, [gameStarted, flipped]);
+
+  // NEW: Separate effect for speaking the word when card flips
+  useEffect(() => {
+    if (flipped && currentWord && gameStarted) {
+      speakWord(currentWord);
+    }
+  }, [flipped, currentWord, gameStarted]);
+
   const handleGuessSubmit = () => {
     if (!currentWord) return;
 
@@ -320,17 +318,18 @@ const SpellingFlashCardGame = () => {
     }, 1000);
 
     if (currentGuess.toLowerCase() === currentWord.toLowerCase()) {
-      // Calculate points: each incorrect guess deducts 30 from 100 points
-      const roundScore = Math.max(100 - attempt * 30, 0);
+      // NEW: Calculate the dynamic base score where baseScore = 25 * word.length.
+      const baseScore = 25 * currentWord.length;
+      // For each wrong guess, subtract 20% of the base score.
+      const roundScore = Math.max(Math.floor(baseScore * (1 - 0.2 * attempt)), 0);
       setScore((prev) => prev + roundScore);
       setGuessHistory([...guessHistory, currentGuess]);
 
       new Audio(successSound).play();
 
-      // Increment the round to increase the difficulty for the next round.
-      setRound((prev) => prev + 1);
+      // Increment the round (if needed) and trigger animations.
+      setAttempt((prev) => prev + 1);
 
-      // Trigger success animation before starting the next round
       setAnimateSuccess(true);
       setTimeout(() => {
         setAnimateSuccess(false);
@@ -400,9 +399,14 @@ const SpellingFlashCardGame = () => {
     setGameOver(false);
     setPlayerName("");
     setShowNamePrompt(false);
-    setRound(1);
-    setGlobalTimer(185);
-    startNewRound();
+    setFlipped(false);
+    setCurrentGuess("");
+    setGuessHistory([]);
+    setAttempt(0);
+    setMessage("");
+    setShowCelebration(false);
+    // NEW: Reset gameStarted so the user sees the settings screen again.
+    setGameStarted(false);
   };
 
   // Renders a row for a guess with each cell showing feedback:
@@ -464,6 +468,74 @@ const SpellingFlashCardGame = () => {
     globalTimer % 60 < 10 ? "0" : ""
   }${globalTimer % 60}`;
 
+  // NEW: Handler for starting the game via settings
+  const handleStartGame = () => {
+    if (selectedDisplayTime === null || selectedSessionDuration === null) {
+      setSettingsError("Please select both display time and session duration.");
+      return;
+    }
+    setSettingsError("");
+    // Reset all game states
+    setScore(0);
+    setGameOver(false);
+    setPlayerName("");
+    setShowNamePrompt(false);
+    setFlipped(false);
+    setCurrentGuess("");
+    setGuessHistory([]);
+    setAttempt(0);
+    setMessage("");
+    setShowCelebration(false);
+    // Initialize timers
+    setCountdown(selectedDisplayTime);
+    setGlobalTimer(selectedSessionDuration * 60);
+    // Start the game
+    setGameStarted(true);
+    startNewRound();
+  };
+
+  // NEW: Start Screen Component (inline rendering)
+  if (!gameStarted) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-purple-200 via-pink-100 to-blue-200 p-4 flex flex-col items-center justify-center">
+        <h1 className="text-4xl font-bold mb-6">Welcome to Spelling Flashcard Game!</h1>
+        <div className="bg-white rounded-xl shadow-rainbow p-6 mb-4">
+          <h2 className="text-2xl font-bold mb-4">Game Settings</h2>
+          <div className="mb-4">
+            <p className="mb-2">Word Display Time:</p>
+            {/* Options: 5, 10, 15 seconds */}
+            <label className="mr-4">
+              <input type="radio" name="displayTime" onChange={() => setSelectedDisplayTime(5)} /> 5 seconds
+            </label>
+            <label className="mr-4">
+              <input type="radio" name="displayTime" onChange={() => setSelectedDisplayTime(10)} /> 10 seconds
+            </label>
+            <label className="mr-4">
+              <input type="radio" name="displayTime" onChange={() => setSelectedDisplayTime(15)} /> 15 seconds
+            </label>
+          </div>
+          <div className="mb-4">
+            <p className="mb-2">Session Duration:</p>
+            {/* Options: 3, 5, 7 minutes */}
+            <label className="mr-4">
+              <input type="radio" name="sessionDuration" onChange={() => setSelectedSessionDuration(3)} /> 3 minutes
+            </label>
+            <label className="mr-4">
+              <input type="radio" name="sessionDuration" onChange={() => setSelectedSessionDuration(5)} /> 5 minutes
+            </label>
+            <label className="mr-4">
+              <input type="radio" name="sessionDuration" onChange={() => setSelectedSessionDuration(7)} /> 7 minutes
+            </label>
+          </div>
+          {settingsError && <p className="text-red-500 mb-2">{settingsError}</p>}
+          <button onClick={handleStartGame} className="bg-green-500 text-white px-4 py-2 rounded">
+            Start Game
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-purple-200 via-pink-100 to-blue-200 p-4">
       {/* Flying letters */}
@@ -511,6 +583,9 @@ const SpellingFlashCardGame = () => {
               <div className="flip-card-front bg-white p-8 rounded-lg shadow-lg text-center">
                 <p className="mt-4 mb-4 text-xl">Memorize the word!</p>
                 <h2 className="text-6xl font-bold uppercase">{currentWord}</h2>
+                <p className="mt-2 text-2xl text-gray-500 font-light">
+                  {wordPairs.find(pair => pair.word === currentWord)?.pattern}
+                </p>
                 <p className="mt-2 text-2xl font-bold">{countdown}</p>
               </div>
               {/* Back of the card: Spelling view */}
