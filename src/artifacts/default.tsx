@@ -505,7 +505,7 @@ const SpellingFlashCardGame = () => {
             <p className="mb-2">Word Display Time:</p>
             {/* Options: 5, 10, 15 seconds */}
             <label className="mr-4">
-              <input type="radio" name="displayTime" onChange={() => setSelectedDisplayTime(5)} /> 5 seconds
+              <input type="radio" name="displayTime" onChange={() => setSelectedDisplayTime(5)} checked={selectedDisplayTime === 5} /> 5 seconds
             </label>
             <label className="mr-4">
               <input type="radio" name="displayTime" onChange={() => setSelectedDisplayTime(10)} /> 10 seconds
@@ -518,7 +518,7 @@ const SpellingFlashCardGame = () => {
             <p className="mb-2">Session Duration:</p>
             {/* Options: 3, 5, 7 minutes */}
             <label className="mr-4">
-              <input type="radio" name="sessionDuration" onChange={() => setSelectedSessionDuration(3)} /> 3 minutes
+              <input type="radio" name="sessionDuration" onChange={() => setSelectedSessionDuration(3)}  checked={selectedSessionDuration === 3}/> 3 minutes
             </label>
             <label className="mr-4">
               <input type="radio" name="sessionDuration" onChange={() => setSelectedSessionDuration(5)} /> 5 minutes
