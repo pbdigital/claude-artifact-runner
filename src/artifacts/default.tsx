@@ -15,10 +15,17 @@
 
 import { useState, useEffect } from "react";
 import Confetti from "react-confetti";
+import OpenAI from 'openai';
 import successSound from "./success.mp3"; // Added import for the success sound
 // Import word pairs from the JSON file instead of inline constant
 import wordPairs from "./spelling-flash-card-words.json";
 import "./spelling-flash-card.css"; // <-- NEW: Import the CSS for flip animations
+
+// Initialize OpenAI client
+const openai = new OpenAI({
+  apiKey: import.meta.env.VITE_OPENAI_API_KEY as string,
+  dangerouslyAllowBrowser: true,
+});
 
 // Removed inline WORD_PAIRS constant
 // const WORD_PAIRS = [
@@ -26,12 +33,30 @@ import "./spelling-flash-card.css"; // <-- NEW: Import the CSS for flip animatio
 //   ...
 // ];
 
-// Function to speak the word (used during the spelling prompt)
-const speakWord = (word: string) => {
-  if (word && "speechSynthesis" in window) {
-    const utterance = new SpeechSynthesisUtterance('Spell the word.... "' + word + '".');
-    utterance.lang = "en-US";
-    window.speechSynthesis.speak(utterance);
+// Function to speak the word using OpenAI's TTS
+const speakWord = async (word: string) => {
+  if (!word) return;
+  
+  try {
+    const mp3 = await openai.audio.speech.create({
+      model: "tts-1-hd",
+      voice: "alloy",
+      input: `Spell the word.... "${word}".`,
+    });
+
+    const arrayBuffer = await mp3.arrayBuffer();
+    const blob = new Blob([arrayBuffer], { type: 'audio/mpeg' });
+    const url = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+    
+    await audio.play();
+    
+    // Cleanup URL after playing
+    audio.onended = () => {
+      URL.revokeObjectURL(url);
+    };
+  } catch (error) {
+    console.error('Error playing TTS:', error);
   }
 };
 
@@ -189,8 +214,8 @@ const SpellingFlashCardGame = () => {
   const [showCelebration, setShowCelebration] = useState<boolean>(false);
   // NEW: state for settings and game start
   const [gameStarted, setGameStarted] = useState<boolean>(false);
-  const [selectedDisplayTime, setSelectedDisplayTime] = useState<number | null>(null);
-  const [selectedSessionDuration, setSelectedSessionDuration] = useState<number | null>(null);
+  const [selectedDisplayTime, setSelectedDisplayTime] = useState<number | null>(5); // Set default to 5 seconds
+  const [selectedSessionDuration, setSelectedSessionDuration] = useState<number | null>(3); // Set default to 3 minutes
   const [settingsError, setSettingsError] = useState<string>("");
 
   // NEW: Initialize timers based on settings; defaults to 0 until game starts.
@@ -270,6 +295,10 @@ const SpellingFlashCardGame = () => {
 
     const intervalId = setInterval(() => {
       setCountdown((prev) => {
+        // Start TTS when there's 2 seconds left (1 second before flip)
+        if (prev === 3) {
+          speakWord(currentWord).catch(console.error);
+        }
         if (prev <= 1) {
           clearInterval(intervalId);
           setFlipped(true);
@@ -279,14 +308,7 @@ const SpellingFlashCardGame = () => {
       });
     }, 1000);
     return () => clearInterval(intervalId);
-  }, [gameStarted, flipped]);
-
-  // NEW: Separate effect for speaking the word when card flips
-  useEffect(() => {
-    if (flipped && currentWord && gameStarted) {
-      speakWord(currentWord);
-    }
-  }, [flipped, currentWord, gameStarted]);
+  }, [gameStarted, flipped, currentWord]);
 
   const handleGuessSubmit = () => {
     if (!currentWord) return;
