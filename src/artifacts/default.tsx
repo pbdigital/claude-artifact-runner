@@ -7,12 +7,14 @@
  * - Correct letters (in the correct position) are shown in green.
  * - Incorrect letters appear in gray.
  *
- * The game supports multiple attempts (up to 3 tries) before revealing the correct answer.
- * On a correct guess, a celebratory animation (confetti) is displayed.
+ * New Features Added:
+ * 1. Session Progress Tracking:
+ *    - Records session data (session ID, total score, duration, and per-word details)
+ *      and “saves” the data as a JSON file (session-progress.json) at session end.
  *
- * The game session now uses a smaller pool of words (10–20 words) and ensures that the child
- * goes through each word only once. If they complete all the words before the session timer expires,
- * the game ends successfully.
+ * 2. Adaptive Difficulty Adjustments:
+ *    - Adjusts the display time for each word based on the historical success rate 
+ *      (using past session data stored in localStorage).
  *
  * The module uses ES6, React hooks, and react-confetti.
  */
@@ -37,7 +39,7 @@ const speakWord = async (word: string) => {
   
   try {
     const mp3 = await openai.audio.speech.create({
-      model: "tts-1-hd",
+      model: "tts-1",
       voice: "alloy",
       input: `Spell the word.... "${word}".`,
     });
@@ -225,14 +227,14 @@ const SpellingFlashCardGame = () => {
   // NEW: state for settings and game start
   const [gameStarted, setGameStarted] = useState<boolean>(false);
   const [selectedDisplayTime, setSelectedDisplayTime] = useState<number | null>(5); // default 5 seconds
-  const [selectedSessionDuration, setSelectedSessionDuration] = useState<number | null>(5); // default 3 minutes
+  const [selectedSessionDuration, setSelectedSessionDuration] = useState<number | null>(5); // default 5 minutes
   const [settingsError, setSettingsError] = useState<string>("");
 
   // NEW: Initialize timers based on settings; defaults to 0 until game starts.
   const [countdown, setCountdown] = useState<number>(0);
   const [globalTimer, setGlobalTimer] = useState<number>(0);
 
-  // Add flying letters state
+  // NEW: State for flying letters animation
   const [flyingLetters, setFlyingLetters] = useState<
     Array<{
       letter: string;
@@ -240,6 +242,16 @@ const SpellingFlashCardGame = () => {
       id: string;
     }>
   >([]);
+
+  // NEW: States for session progress tracking and adaptive difficulty adjustments
+  // sessionProgress holds overall session data including each word’s details.
+  const [sessionProgress, setSessionProgress] = useState<any>(null);
+  // sessionStartTime to measure session duration.
+  const [sessionStartTime, setSessionStartTime] = useState<number>(0);
+  // roundDisplayTime is the adjusted display time for the current word.
+  const [roundDisplayTime, setRoundDisplayTime] = useState<number>(selectedDisplayTime as number);
+  // roundStartTime records when the flashcard flips (start of guessing) for response time calculation.
+  const [roundStartTime, setRoundStartTime] = useState<number>(0);
 
   const MAX_ATTEMPTS = 3;
 
@@ -251,7 +263,39 @@ const SpellingFlashCardGame = () => {
     }
   }, []);
 
-  // NEW: When gameStarted becomes true, initialize timers and start the first round.
+  // NEW: Adaptive Difficulty Adjustments
+  // This function loads past session history from localStorage and adjusts
+  // the display time for a given word based on its historical success rate.
+  const adjustDisplayTime = (word: string): number => {
+    const history = JSON.parse(localStorage.getItem("sessionProgressHistory") || "[]");
+    let totalAttempts = 0;
+    let totalSuccess = 0;
+    history.forEach((session: any) => {
+      session.words.forEach((entry: any) => {
+        if (entry.word.toLowerCase() === word.toLowerCase()) {
+          totalAttempts += entry.attempts;
+          if (entry.correct) {
+            totalSuccess += 1;
+          }
+        }
+      });
+    });
+    const baseTime = selectedDisplayTime || 5;
+    if (totalAttempts === 0) return baseTime;
+    const successRate = totalSuccess / totalAttempts;
+    let newTime = baseTime;
+    // If the word is very well-known, reduce display time by 20%
+    if (successRate > 0.8) {
+      newTime = baseTime * 0.8;
+    }
+    // If the word is challenging, increase display time by 20%
+    else if (successRate < 0.5) {
+      newTime = baseTime * 1.2;
+    }
+    return Math.max(1, Math.round(newTime));
+  };
+
+  // NEW: When gameStarted becomes true, initialize timers, session progress tracking, and start the first round.
   useEffect(() => {
     if (gameStarted) {
       setCountdown(selectedDisplayTime as number);
@@ -274,6 +318,7 @@ const SpellingFlashCardGame = () => {
         if (prev <= 1) {
           clearInterval(intervalId);
           setFlipped(true);
+          setRoundStartTime(Date.now()); // Record start time for response time calculation
           return 0;
         }
         return prev - 1;
@@ -314,9 +359,12 @@ const SpellingFlashCardGame = () => {
     const nextPair = availableWords[0];
     setCurrentPair(nextPair);
     setAvailableWords(availableWords.slice(1));
+    // NEW: Adjust the display time for this word based on historical performance.
+    const adjustedTime = adjustDisplayTime(nextPair.word);
+    setRoundDisplayTime(adjustedTime);
     // Reset round-specific states.
     setFlipped(false);
-    setCountdown(selectedDisplayTime as number);
+    setCountdown(adjustedTime);
     setCurrentGuess("");
     setGuessHistory([]);
     setAttempt(0);
@@ -347,15 +395,40 @@ const SpellingFlashCardGame = () => {
       setFlyingLetters([]);
     }, 1000);
 
-    if (currentGuess.toLowerCase() === currentPair.word.toLowerCase()) {
+    const isCorrect = currentGuess.toLowerCase() === currentPair.word.toLowerCase();
+    const newAttempt = attempt + 1;
+    // Calculate response time in seconds (time from when the card flipped)
+    const responseTime = roundStartTime ? Math.round((Date.now() - roundStartTime) / 1000) : 0;
+    
+    // If this round is complete (correct answer or max attempts reached), record the round data.
+    if (isCorrect || newAttempt >= MAX_ATTEMPTS) {
+      const roundData = {
+        word: currentPair.word,
+        pattern: currentPair.pattern,
+        attempts: newAttempt,
+        correct: isCorrect,
+        displayTime: roundDisplayTime,
+        responseTime: responseTime,
+      };
+      setSessionProgress((prev: any) => ({
+        ...prev,
+        words: [...prev.words, roundData]
+      }));
+    }
+
+    if (isCorrect) {
       const baseScore = 25 * currentPair.word.length;
       const roundScore = Math.max(Math.floor(baseScore * (1 - 0.2 * attempt)), 0);
       setScore((prev) => prev + roundScore);
+      // Also update session total score
+      setSessionProgress((prev: any) => ({
+        ...prev,
+        totalScore: prev.totalScore + roundScore
+      }));
+      
       setGuessHistory([...guessHistory, currentGuess]);
-
       new Audio(successSound).play();
-      setAttempt((prev) => prev + 1);
-
+      setAttempt(newAttempt);
       setAnimateSuccess(true);
       setTimeout(() => {
         setAnimateSuccess(false);
@@ -365,7 +438,6 @@ const SpellingFlashCardGame = () => {
         }, 2000);
       }, 600);
     } else {
-      const newAttempt = attempt + 1;
       setGuessHistory([...guessHistory, currentGuess]);
       setAttempt(newAttempt);
       if (newAttempt >= MAX_ATTEMPTS) {
@@ -512,12 +584,55 @@ const SpellingFlashCardGame = () => {
     // Initialize timers.
     setCountdown(selectedDisplayTime);
     setGlobalTimer(selectedSessionDuration * 60);
+    // NEW: Initialize session progress tracking.
+    const newSessionProgress = {
+      sessionId: new Date().toISOString(),
+      totalScore: 0,
+      duration: 0,
+      words: [],
+    };
+    setSessionProgress(newSessionProgress);
+    setSessionStartTime(Date.now());
     // Shuffle the word pool and store in state.
     const shuffledWords = shuffleArray([...wordPairs]);
     setAvailableWords(shuffledWords);
     setInitialWordCount(shuffledWords.length);
     // Start the game.
     setGameStarted(true);
+  };
+
+  // NEW: When the session is over, update the session progress with duration and final score,
+  // save it to localStorage history, and export the data as a JSON file.
+  useEffect(() => {
+    if (gameOver && sessionProgress) {
+      const duration = Math.round((Date.now() - sessionStartTime) / 1000);
+      const finalSessionProgress = {
+        ...sessionProgress,
+        duration: duration,
+        totalScore: score, // update total score from state
+      };
+      setSessionProgress(finalSessionProgress);
+      // Save session progress to localStorage history
+      const history = JSON.parse(localStorage.getItem("sessionProgressHistory") || "[]");
+      history.push(finalSessionProgress);
+      localStorage.setItem("sessionProgressHistory", JSON.stringify(history));
+      // Export session progress as JSON file (simulating saving to /artifacts/session-progress.json)
+      exportSessionProgress(finalSessionProgress);
+    }
+  }, [gameOver]);
+
+  // NEW: Utility function to export session progress as a JSON file.
+  const exportSessionProgress = (sessionData: any) => {
+    const dataStr = JSON.stringify({ sessions: [sessionData] }, null, 2);
+    const blob = new Blob([dataStr], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "session-progress.json";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   // NEW: Start Screen Component.
