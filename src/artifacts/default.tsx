@@ -7,17 +7,21 @@
  * - Correct letters (in the correct position) are shown in green.
  * - Incorrect letters appear in gray.
  *
- * The game supports multiple attempts (up to 6 tries) before revealing the correct answer.
+ * The game supports multiple attempts (up to 3 tries) before revealing the correct answer.
  * On a correct guess, a celebratory animation (confetti) is displayed.
+ *
+ * The game session now uses a smaller pool of words (10–20 words) and ensures that the child
+ * goes through each word only once. If they complete all the words before the session timer expires,
+ * the game ends successfully.
  *
  * The module uses ES6, React hooks, and react-confetti.
  */
 
 import { useState, useEffect } from "react";
 import Confetti from "react-confetti";
-import OpenAI from 'openai';
+import OpenAI from "openai";
 import successSound from "./success.mp3"; // Added import for the success sound
-// Import word pairs from the JSON file instead of inline constant
+// Import word pairs from the JSON file
 import wordPairs from "./spelling-flash-card-words.json";
 import "./spelling-flash-card.css"; // <-- NEW: Import the CSS for flip animations
 
@@ -26,12 +30,6 @@ const openai = new OpenAI({
   apiKey: import.meta.env.VITE_OPENAI_API_KEY as string,
   dangerouslyAllowBrowser: true,
 });
-
-// Removed inline WORD_PAIRS constant
-// const WORD_PAIRS = [
-//   { word: 'flower', tip: 'Spell "flower" as "flow" + "er". Don\'t mix it with "flour" (the powder).' },
-//   ...
-// ];
 
 // Function to speak the word using OpenAI's TTS
 const speakWord = async (word: string) => {
@@ -45,7 +43,7 @@ const speakWord = async (word: string) => {
     });
 
     const arrayBuffer = await mp3.arrayBuffer();
-    const blob = new Blob([arrayBuffer], { type: 'audio/mpeg' });
+    const blob = new Blob([arrayBuffer], { type: "audio/mpeg" });
     const url = URL.createObjectURL(blob);
     const audio = new Audio(url);
     
@@ -56,7 +54,7 @@ const speakWord = async (word: string) => {
       URL.revokeObjectURL(url);
     };
   } catch (error) {
-    console.error('Error playing TTS:', error);
+    console.error("Error playing TTS:", error);
   }
 };
 
@@ -169,7 +167,7 @@ const CurrentGuessRow = ({
   );
 };
 
-// Add this new component for flying letters
+// Component for flying letters
 const FlyingLetter = ({
   letter,
   startPosition,
@@ -185,7 +183,7 @@ const FlyingLetter = ({
       style={{
         left: startPosition.x,
         top: startPosition.y,
-        color: "#4a5568", // Updated to match guess box text color
+        color: "#4a5568",
       }}
       onAnimationEnd={onAnimationEnd}
     >
@@ -194,10 +192,22 @@ const FlyingLetter = ({
   );
 };
 
+// Utility function to shuffle an array
+const shuffleArray = <T,>(array: T[]): T[] => {
+  return array
+    .map((value) => ({ value, sort: Math.random() }))
+    .sort((a, b) => a.sort - b.sort)
+    .map(({ value }) => value);
+};
+
 // Main flashcard game component
 const SpellingFlashCardGame = () => {
-  // State variables for current word, flashcard display, user guess, history, and status messaging.
-  const [currentWord, setCurrentWord] = useState<string>("");
+  // NEW: State for the current word pair (word & pattern) and the remaining words
+  const [currentPair, setCurrentPair] = useState<{ word: string; pattern: string } | null>(null);
+  const [availableWords, setAvailableWords] = useState<{ word: string; pattern: string }[]>([]);
+  const [initialWordCount, setInitialWordCount] = useState<number>(0);
+
+  // Other game states
   const [flipped, setFlipped] = useState<boolean>(false); // false = show front, true = show back
   const [animateSuccess, setAnimateSuccess] = useState<boolean>(false);
   const [currentGuess, setCurrentGuess] = useState<string>("");
@@ -214,8 +224,8 @@ const SpellingFlashCardGame = () => {
   const [showCelebration, setShowCelebration] = useState<boolean>(false);
   // NEW: state for settings and game start
   const [gameStarted, setGameStarted] = useState<boolean>(false);
-  const [selectedDisplayTime, setSelectedDisplayTime] = useState<number | null>(5); // Set default to 5 seconds
-  const [selectedSessionDuration, setSelectedSessionDuration] = useState<number | null>(3); // Set default to 3 minutes
+  const [selectedDisplayTime, setSelectedDisplayTime] = useState<number | null>(5); // default 5 seconds
+  const [selectedSessionDuration, setSelectedSessionDuration] = useState<number | null>(5); // default 3 minutes
   const [settingsError, setSettingsError] = useState<string>("");
 
   // NEW: Initialize timers based on settings; defaults to 0 until game starts.
@@ -233,10 +243,6 @@ const SpellingFlashCardGame = () => {
 
   const MAX_ATTEMPTS = 3;
 
-  // Initialize a new round upon component mount
-  // Remove initial startNewRound call; start later when gameStarted is true.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-
   // Load leaderboard from localStorage on component mount
   useEffect(() => {
     const storedLeaderboard = localStorage.getItem("leaderboard");
@@ -248,7 +254,6 @@ const SpellingFlashCardGame = () => {
   // NEW: When gameStarted becomes true, initialize timers and start the first round.
   useEffect(() => {
     if (gameStarted) {
-      // Set timers based on selected settings
       setCountdown(selectedDisplayTime as number);
       setGlobalTimer((selectedSessionDuration as number) * 60);
       startNewRound();
@@ -256,23 +261,30 @@ const SpellingFlashCardGame = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameStarted]);
 
-  const startNewRound = () => {
-    // NEW: Randomly select a word pair from the entire pool instead of filtering by word length.
-    const randomPair = wordPairs[Math.floor(Math.random() * wordPairs.length)];
-    setCurrentWord(randomPair.word);
-
-    // Reset flip state, countdown, guess history, attempt and message for the new round.
-    setFlipped(false);
-    setCountdown(selectedDisplayTime as number);
-    setCurrentGuess("");
-    setGuessHistory([]);
-    setAttempt(0);
-    setMessage("");
-  };
-
-  // NEW: Global game timer countdown
+  // Countdown effect for the flashcard display
   useEffect(() => {
-    if (!gameStarted || gameOver) return; // Don't run if game hasn't started or is over
+    if (!gameStarted || flipped) return; // Only run when game started and card is showing front
+
+    const intervalId = setInterval(() => {
+      setCountdown((prev) => {
+        // Start TTS when there are 3 seconds left
+        if (prev === 3 && currentPair) {
+          speakWord(currentPair.word).catch(console.error);
+        }
+        if (prev <= 1) {
+          clearInterval(intervalId);
+          setFlipped(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(intervalId);
+  }, [gameStarted, flipped, currentPair]);
+
+  // Global session timer countdown
+  useEffect(() => {
+    if (!gameStarted || gameOver) return;
 
     const timerInterval = setInterval(() => {
       setGlobalTimer((prevTimer) => {
@@ -289,67 +301,59 @@ const SpellingFlashCardGame = () => {
     return () => clearInterval(timerInterval);
   }, [gameStarted, gameOver]);
 
-  // Countdown effect: When flashcard is visible, start countdown
-  useEffect(() => {
-    if (!gameStarted || flipped) return; // Don't run if game hasn't started or card is flipped
-
-    const intervalId = setInterval(() => {
-      setCountdown((prev) => {
-        // Start TTS when there's 2 seconds left (1 second before flip)
-        if (prev === 3) {
-          speakWord(currentWord).catch(console.error);
-        }
-        if (prev <= 1) {
-          clearInterval(intervalId);
-          setFlipped(true);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(intervalId);
-  }, [gameStarted, flipped, currentWord]);
+  // Starts a new round by selecting the next word from the available list.
+  const startNewRound = () => {
+    // If no words remain, end the game successfully.
+    if (availableWords.length === 0) {
+      setMessage("Congratulations! You completed all the words!");
+      setGameOver(true);
+      checkAndPromptHighScore();
+      return;
+    }
+    // Select the next word (first in the list) and remove it.
+    const nextPair = availableWords[0];
+    setCurrentPair(nextPair);
+    setAvailableWords(availableWords.slice(1));
+    // Reset round-specific states.
+    setFlipped(false);
+    setCountdown(selectedDisplayTime as number);
+    setCurrentGuess("");
+    setGuessHistory([]);
+    setAttempt(0);
+    setMessage("");
+  };
 
   const handleGuessSubmit = () => {
-    if (!currentWord) return;
+    if (!currentPair) return;
 
-    // Get the positions of the current guess boxes for the animation
+    // Get positions of the guess boxes for flying letter animation
     const guessBoxes = document.querySelectorAll(".guess-box");
     const positions = Array.from(guessBoxes).map((box) => {
       const rect = box.getBoundingClientRect();
       return {
-        x: rect.left + rect.width / 2 - 15, // Center the flying letter
+        x: rect.left + rect.width / 2 - 15,
         y: rect.top + rect.height / 2 - 15,
       };
     });
 
-    // Create flying letters
     const letters = currentGuess.split("");
-    const flyingLetters = letters.map((letter, index) => ({
+    const flyingLettersArr = letters.map((letter, index) => ({
       letter,
       position: positions[index],
       id: `${letter}-${index}-${Date.now()}`,
     }));
-
-    // Set flying letters state
-    setFlyingLetters(flyingLetters);
-
-    // Clear flying letters after animation
+    setFlyingLetters(flyingLettersArr);
     setTimeout(() => {
       setFlyingLetters([]);
     }, 1000);
 
-    if (currentGuess.toLowerCase() === currentWord.toLowerCase()) {
-      // NEW: Calculate the dynamic base score where baseScore = 25 * word.length.
-      const baseScore = 25 * currentWord.length;
-      // For each wrong guess, subtract 20% of the base score.
+    if (currentGuess.toLowerCase() === currentPair.word.toLowerCase()) {
+      const baseScore = 25 * currentPair.word.length;
       const roundScore = Math.max(Math.floor(baseScore * (1 - 0.2 * attempt)), 0);
       setScore((prev) => prev + roundScore);
       setGuessHistory([...guessHistory, currentGuess]);
 
       new Audio(successSound).play();
-
-      // Increment the round (if needed) and trigger animations.
       setAttempt((prev) => prev + 1);
 
       setAnimateSuccess(true);
@@ -365,14 +369,12 @@ const SpellingFlashCardGame = () => {
       setGuessHistory([...guessHistory, currentGuess]);
       setAttempt(newAttempt);
       if (newAttempt >= MAX_ATTEMPTS) {
-        setMessage(
-          `The correct word was "${currentWord}".`
-        );
+        setMessage(`The correct word was "${currentPair.word}".`);
         setTimeout(() => {
           setAnimateSuccess(false);
           setShowCelebration(true);
           setTimeout(() => {
-          startNewRound();
+            startNewRound();
           }, 2000);
         }, 600);
       }
@@ -380,9 +382,10 @@ const SpellingFlashCardGame = () => {
     setCurrentGuess("");
   };
 
-  // New handlers for virtual keyboard
+  // Handlers for the virtual keyboard
   const handleLetterClick = (letter: string) => {
-    if (currentGuess.length < currentWord.length) {
+    if (!currentPair) return;
+    if (currentGuess.length < currentPair.word.length) {
       setCurrentGuess((prev) => prev + letter);
     }
   };
@@ -391,7 +394,7 @@ const SpellingFlashCardGame = () => {
     setCurrentGuess((prev) => prev.slice(0, -1));
   };
 
-  // Checks if the final score qualifies for the leaderboard and, if so, prompts for the player's name.
+  // Check if the final score qualifies for the leaderboard.
   const checkAndPromptHighScore = () => {
     const qualifies =
       leaderboard.length < 5 ||
@@ -427,19 +430,18 @@ const SpellingFlashCardGame = () => {
     setAttempt(0);
     setMessage("");
     setShowCelebration(false);
-    // NEW: Reset gameStarted so the user sees the settings screen again.
+    // Reset gameStarted so that the settings screen is shown again.
     setGameStarted(false);
   };
 
-  // Renders a row for a guess with each cell showing feedback:
-  // Green if the letter is correct, gray if incorrect, or empty if not guessed.
+  // Renders a row for a guess with feedback for each letter.
   const renderGuessRow = (guess: string) => {
-    const totalCells = Math.max(currentWord.length, guess.length);
+    const totalCells = Math.max(currentPair?.word.length || 0, guess.length);
     return (
       <div className="flex justify-center gap-2">
         {Array.from({ length: totalCells }).map((_, index) => {
           const expectedLetter =
-            index < currentWord.length ? currentWord[index] : null;
+            index < (currentPair?.word.length || 0) ? currentPair?.word[index] : null;
           const guessedLetter = guess[index] || "";
           let cellClass = "";
           if (expectedLetter !== null) {
@@ -453,7 +455,6 @@ const SpellingFlashCardGame = () => {
               cellClass = "bg-gray-300 text-black";
             }
           } else {
-            // Extra letters beyond expected word length
             cellClass = "bg-gray-300 text-black";
           }
           return (
@@ -469,11 +470,11 @@ const SpellingFlashCardGame = () => {
     );
   };
 
-  // Renders an empty row (for the remaining attempts)
+  // Renders an empty row for remaining attempts.
   const renderEmptyRow = () => {
     return (
       <div className="flex justify-center gap-2">
-        {Array.from({ length: currentWord.length }).map((_, index) => (
+        {Array.from({ length: currentPair?.word.length || 0 }).map((_, index) => (
           <div
             key={index}
             className="w-10 h-10 flex items-center justify-center border bg-white"
@@ -485,19 +486,19 @@ const SpellingFlashCardGame = () => {
     );
   };
 
-  // Just before the return statement of SpellingFlashCardGame
+  // Formats the global timer for display.
   const formattedTime = `${Math.floor(globalTimer / 60)}:${
     globalTimer % 60 < 10 ? "0" : ""
   }${globalTimer % 60}`;
 
-  // NEW: Handler for starting the game via settings
+  // NEW: Handler for starting the game via the settings screen.
   const handleStartGame = () => {
     if (selectedDisplayTime === null || selectedSessionDuration === null) {
       setSettingsError("Please select both display time and session duration.");
       return;
     }
     setSettingsError("");
-    // Reset all game states
+    // Reset game states.
     setScore(0);
     setGameOver(false);
     setPlayerName("");
@@ -508,24 +509,26 @@ const SpellingFlashCardGame = () => {
     setAttempt(0);
     setMessage("");
     setShowCelebration(false);
-    // Initialize timers
+    // Initialize timers.
     setCountdown(selectedDisplayTime);
     setGlobalTimer(selectedSessionDuration * 60);
-    // Start the game
+    // Shuffle the word pool and store in state.
+    const shuffledWords = shuffleArray([...wordPairs]);
+    setAvailableWords(shuffledWords);
+    setInitialWordCount(shuffledWords.length);
+    // Start the game.
     setGameStarted(true);
-    startNewRound();
   };
 
-  // NEW: Start Screen Component (inline rendering)
+  // NEW: Start Screen Component.
   if (!gameStarted) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-purple-200 via-pink-100 to-blue-200 p-4 flex flex-col items-center justify-center">
         <h1 className="text-4xl font-bold mb-6">Welcome to Spelling Flashcard Game!</h1>
         <div className="bg-white rounded-xl shadow-rainbow p-6 mb-4">
           <h2 className="text-2xl font-bold mb-4">Game Settings</h2>
-          <div className="mb-4">
+          <div className="mb-4" style={{display: "none"}}>
             <p className="mb-2">Word Display Time:</p>
-            {/* Options: 5, 10, 15 seconds */}
             <label className="mr-4">
               <input type="radio" name="displayTime" onChange={() => setSelectedDisplayTime(5)} checked={selectedDisplayTime === 5} /> 5 seconds
             </label>
@@ -536,23 +539,24 @@ const SpellingFlashCardGame = () => {
               <input type="radio" name="displayTime" onChange={() => setSelectedDisplayTime(15)} /> 15 seconds
             </label>
           </div>
-          <div className="mb-4">
+          <div className="mb-4" style={{display: "none"}}>
             <p className="mb-2">Session Duration:</p>
-            {/* Options: 3, 5, 7 minutes */}
             <label className="mr-4">
-              <input type="radio" name="sessionDuration" onChange={() => setSelectedSessionDuration(3)}  checked={selectedSessionDuration === 3}/> 3 minutes
+              <input type="radio" name="sessionDuration" onChange={() => setSelectedSessionDuration(3)} /> 3 minutes
             </label>
             <label className="mr-4">
-              <input type="radio" name="sessionDuration" onChange={() => setSelectedSessionDuration(5)} /> 5 minutes
+              <input type="radio" name="sessionDuration" onChange={() => setSelectedSessionDuration(5)}  checked={selectedSessionDuration === 5}/> 5 minutes
             </label>
             <label className="mr-4">
               <input type="radio" name="sessionDuration" onChange={() => setSelectedSessionDuration(7)} /> 7 minutes
             </label>
           </div>
           {settingsError && <p className="text-red-500 mb-2">{settingsError}</p>}
-          <button onClick={handleStartGame} className="bg-green-500 text-white px-4 py-2 rounded">
-            Start Game
-          </button>
+          <div className="flex justify-center">
+            <button onClick={handleStartGame} className="bg-green-500 text-white px-12 py-4 rounded">
+              Start Game
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -575,9 +579,7 @@ const SpellingFlashCardGame = () => {
       <div className="flex justify-between items-start max-w-6xl mx-auto mb-8">
         {/* Left side: Leaderboard */}
         <div className="w-1/4 bg-white rounded-xl shadow-rainbow p-6 animate-float">
-          <h2 className="text-2xl font-bold text-purple-600 mb-4">
-            🏆 High Scores
-          </h2>
+          <h2 className="text-2xl font-bold text-purple-600 mb-4">🏆 High Scores</h2>
           <ul className="space-y-2">
             {leaderboard.map((entry, index) => (
               <li
@@ -593,20 +595,16 @@ const SpellingFlashCardGame = () => {
 
         {/* Center: Main game content */}
         <div className="w-2/4 px-8">
-          {/* NEW: Global game countdown timer */}
-
-          <div
-            className={`flip-card-container ${
-              animateSuccess ? "animate-success" : ""
-            }`}
-          >
+          <div className={`flip-card-container ${animateSuccess ? "animate-success" : ""}`}>
             <div className={`flip-card ${flipped ? "flipped" : ""}`}>
               {/* Front of the card: Flashcard view */}
               <div className="flip-card-front bg-white p-8 rounded-lg shadow-lg text-center">
                 <p className="mt-4 mb-4 text-xl">Memorize the word!</p>
-                <h2 className="text-6xl font-bold uppercase">{currentWord}</h2>
+                <h2 className="text-6xl font-bold uppercase">
+                  {currentPair?.word}
+                </h2>
                 <p className="mt-2 text-2xl text-gray-500 font-light">
-                  {wordPairs.find(pair => pair.word === currentWord)?.pattern}
+                  {currentPair?.pattern}
                 </p>
                 <p className="mt-2 text-2xl font-bold">{countdown}</p>
               </div>
@@ -621,31 +619,24 @@ const SpellingFlashCardGame = () => {
                     Time Left: {formattedTime}
                   </span>
                 </div>
-                {/* <button
-                  type="button"
-                  onClick={() => speakWord(currentWord)}
-                  title="Replay pronunciation"
-                  className="mb-4 text-blue-500 hover:underline"
-                >
-                  Replay pronunciation
-                </button> */}
+                {/* Progress Indicator */}
+                <div className="text-center mb-4">
+                  <span className="text-lg font-semibold">
+                    Progress: {initialWordCount - availableWords.length} / {initialWordCount}
+                  </span>
+                </div>
                 <div className="space-y-2 mb-4">
                   {guessHistory.map((guess, index) => (
                     <div key={index}>{renderGuessRow(guess)}</div>
                   ))}
-                  {Array.from({
-                    length: MAX_ATTEMPTS - guessHistory.length,
-                  }).map((_, idx) => (
+                  {Array.from({ length: MAX_ATTEMPTS - guessHistory.length }).map((_, idx) => (
                     <div key={idx}>{renderEmptyRow()}</div>
                   ))}
                 </div>
                 {message && <p className="mb-2 text-lg text-center">{message}</p>}
                 {!gameOver && attempt < MAX_ATTEMPTS && (
                   <div className="flex flex-col items-center gap-4">
-                    <CurrentGuessRow
-                      word={currentWord}
-                      currentGuess={currentGuess}
-                    />
+                    <CurrentGuessRow word={currentPair?.word || ""} currentGuess={currentGuess} />
                     <VirtualKeyboard
                       onLetterClick={handleLetterClick}
                       onBackspace={handleBackspace}
@@ -658,7 +649,7 @@ const SpellingFlashCardGame = () => {
 
                 {gameOver && (
                   <div className="mt-4 p-4 border rounded bg-red-100">
-                    <h2 className="text-2xl font-bold">Times Up!</h2>
+                    <h2 className="text-2xl font-bold">Game Over!</h2>
                     <p>Your final score is {score}.</p>
                     {showNamePrompt && (
                       <div className="mt-2">
@@ -693,9 +684,7 @@ const SpellingFlashCardGame = () => {
         {/* Right side: Score */}
         <div className="w-1/4 bg-white rounded-xl shadow-rainbow p-6 animate-float">
           <div className="text-center">
-            <h2 className="text-2xl font-bold text-purple-600 mb-2">
-              Your Score
-            </h2>
+            <h2 className="text-2xl font-bold text-purple-600 mb-2">Your Score</h2>
             <div className="text-4xl font-bold text-pink-500 animate-pulse">
               {score}
             </div>
