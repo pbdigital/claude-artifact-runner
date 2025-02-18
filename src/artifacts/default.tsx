@@ -520,6 +520,7 @@ const SpellingFlashCardGame = () => {
             if (!guessedLetter) {
               cellClass = "bg-red-500 text-white";
             } else if (
+              expectedLetter && // Added null check here
               guessedLetter.toLowerCase() === expectedLetter.toLowerCase()
             ) {
               cellClass = "bg-green-500 text-white";
