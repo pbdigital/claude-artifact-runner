@@ -227,7 +227,7 @@ const SpellingFlashCardGame = () => {
   // NEW: state for settings and game start
   const [gameStarted, setGameStarted] = useState<boolean>(false);
   const [selectedDisplayTime, setSelectedDisplayTime] = useState<number | null>(5); // default 5 seconds
-  const [selectedSessionDuration, setSelectedSessionDuration] = useState<number | null>(5); // default 5 minutes
+  const [selectedSessionDuration, setSelectedSessionDuration] = useState<number | null>(7); // default 7 minutes
   const [settingsError, setSettingsError] = useState<string>("");
 
   // NEW: Initialize timers based on settings; defaults to 0 until game starts.
@@ -508,28 +508,65 @@ const SpellingFlashCardGame = () => {
 
   // Renders a row for a guess with feedback for each letter.
   const renderGuessRow = (guess: string) => {
-    const totalCells = Math.max(currentPair?.word.length || 0, guess.length);
+    if (!currentPair) return null;
+
+    const totalCells = Math.max(currentPair.word.length, guess.length);
+    const targetWord = currentPair.word.toLowerCase();
+    
+    // Create array to track which letters have been matched
+    const matchedIndices = new Set<number>();
+    
+    // First pass - find exact matches (green)
+    const cellStates = Array(totalCells).fill('none');
+    for (let i = 0; i < guess.length; i++) {
+      const guessedLetter = guess[i].toLowerCase();
+      if (i < targetWord.length && guessedLetter === targetWord[i]) {
+        cellStates[i] = 'correct';
+        matchedIndices.add(i);
+      }
+    }
+
+    // Second pass - find letters in wrong position (yellow)
+    for (let i = 0; i < guess.length; i++) {
+      if (cellStates[i] === 'correct') continue;
+      
+      const guessedLetter = guess[i].toLowerCase();
+      
+      // Check if this letter exists in the target word in an unmatched position
+      for (let j = 0; j < targetWord.length; j++) {
+        if (!matchedIndices.has(j) && guessedLetter === targetWord[j]) {
+          cellStates[i] = 'wrong-position';
+          matchedIndices.add(j);
+          break;
+        }
+      }
+      
+      // If not found, mark as incorrect
+      if (cellStates[i] === 'none') {
+        cellStates[i] = 'incorrect';
+      }
+    }
+
     return (
       <div className="flex justify-center gap-2">
         {Array.from({ length: totalCells }).map((_, index) => {
-          const expectedLetter =
-            index < (currentPair?.word.length || 0) ? currentPair?.word[index] : null;
           const guessedLetter = guess[index] || "";
-          let cellClass = "";
-          if (expectedLetter !== null) {
-            if (!guessedLetter) {
-              cellClass = "bg-red-500 text-white";
-            } else if (
-              expectedLetter && // Added null check here
-              guessedLetter.toLowerCase() === expectedLetter.toLowerCase()
-            ) {
-              cellClass = "bg-green-500 text-white";
-            } else {
-              cellClass = "bg-gray-300 text-black";
+          let cellClass = "bg-white text-black"; // default for empty cells
+
+          if (guessedLetter) {
+            switch (cellStates[index]) {
+              case 'correct':
+                cellClass = "bg-green-500 text-white";
+                break;
+              case 'wrong-position':
+                cellClass = "bg-yellow-500 text-white";
+                break;
+              case 'incorrect':
+                cellClass = "bg-gray-300 text-black";
+                break;
             }
-          } else {
-            cellClass = "bg-gray-300 text-black";
           }
+
           return (
             <div
               key={index}
@@ -661,10 +698,10 @@ const SpellingFlashCardGame = () => {
               <input type="radio" name="sessionDuration" onChange={() => setSelectedSessionDuration(3)} /> 3 minutes
             </label>
             <label className="mr-4">
-              <input type="radio" name="sessionDuration" onChange={() => setSelectedSessionDuration(5)}  checked={selectedSessionDuration === 5}/> 5 minutes
+              <input type="radio" name="sessionDuration" onChange={() => setSelectedSessionDuration(5)}  /> 5 minutes
             </label>
             <label className="mr-4">
-              <input type="radio" name="sessionDuration" onChange={() => setSelectedSessionDuration(7)} /> 7 minutes
+              <input type="radio" name="sessionDuration" onChange={() => setSelectedSessionDuration(7)} checked={selectedSessionDuration === 7} /> 7 minutes
             </label>
           </div>
           {settingsError && <p className="text-red-500 mb-2">{settingsError}</p>}
