@@ -16,13 +16,21 @@
  *    - Adjusts the display time for each word based on the historical success rate 
  *      (using past session data stored in localStorage).
  *
+ * 3. Hint Button Feature:
+ *    - Allows the user to tap a Hint button during the guessing phase.
+ *    - Instead of speaking the full word, the TTS speaks a phonemic breakdown (pattern)
+ *      of the word. For example, "Away" with pattern "a-way" becomes:
+ *      "Spell the word with this pattern: a-way."
+ *    - The Hint button is only enabled after 3 seconds into the guessing phase and/or
+ *      after the first incorrect attempt.
+ *
  * The module uses ES6, React hooks, and react-confetti.
  */
 
 import { useState, useEffect } from "react";
 import Confetti from "react-confetti";
 import OpenAI from "openai";
-import successSound from "./success.mp3"; // Added import for the success sound
+import successSound from "./success.mp3";
 // Import word pairs from the JSON file
 import wordPairs from "./spelling-flash-card-words.json";
 import "./spelling-flash-card.css"; // <-- NEW: Import the CSS for flip animations
@@ -57,6 +65,32 @@ const speakWord = async (word: string) => {
     };
   } catch (error) {
     console.error("Error playing TTS:", error);
+  }
+};
+
+// NEW: Function to speak the phonemic pattern using OpenAI's TTS
+const speakPattern = async (pattern: string) => {
+  if (!pattern) return;
+  
+  try {
+    const mp3 = await openai.audio.speech.create({
+      model: "tts-1",
+      voice: "alloy",
+      input: `The word is... "${pattern}!".`,
+    });
+    const arrayBuffer = await mp3.arrayBuffer();
+    const blob = new Blob([arrayBuffer], { type: "audio/mpeg" });
+    const url = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+    
+    await audio.play();
+    
+    // Cleanup URL after playing
+    audio.onended = () => {
+      URL.revokeObjectURL(url);
+    };
+  } catch (error) {
+    console.error("Error playing TTS for pattern:", error);
   }
 };
 
@@ -106,41 +140,84 @@ const VirtualKeyboard = ({
   onSubmit,
   currentGuess,
   disabled,
+  onHint,
+  hintAvailable,
 }: {
   onLetterClick: (letter: string) => void;
   onBackspace: () => void;
   onSubmit: () => void;
   currentGuess: string;
   disabled: boolean;
+  onHint: () => void;
+  hintAvailable: boolean;
 }) => {
-  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+  const row1 = "QWERTYUIOP".split("");
+  const row2 = "ASDFGHJKL".split("");
+  const row3 = "ZXCVBNM".split("");
 
   return (
-    <div className="virtual-keyboard">
-      {alphabet.map((letter) => (
+    <div className="virtual-keyboard flex flex-col gap-2">
+      <div className="flex justify-center gap-1">
+        {row1.map((letter) => (
+          <button
+            key={letter}
+            className="letter-key w-10 h-10 rounded bg-gray-200 hover:bg-gray-300 disabled:opacity-50"
+            onClick={() => onLetterClick(letter)}
+            disabled={disabled}
+          >
+            {letter}
+          </button>
+        ))}
+      </div>
+      <div className="flex justify-center gap-1">
+        <div className="w-5"></div>
+        {row2.map((letter) => (
+          <button
+            key={letter}
+            className="letter-key w-10 h-10 rounded bg-gray-200 hover:bg-gray-300 disabled:opacity-50"
+            onClick={() => onLetterClick(letter)}
+            disabled={disabled}
+          >
+            {letter}
+          </button>
+        ))}
+        <div className="w-5"></div>
+      </div>
+      <div className="flex justify-center gap-1">
         <button
-          key={letter}
-          className="letter-key"
-          onClick={() => onLetterClick(letter)}
-          disabled={disabled}
+          className="letter-key hint w-16 h-10 rounded bg-blue-500 hover:bg-blue-600 text-sm text-white"
+          onClick={onHint}
+          disabled={disabled || !hintAvailable}
         >
-          {letter}
+          HINT
         </button>
-      ))}
-      <button
-        className="letter-key backspace"
-        onClick={onBackspace}
-        disabled={disabled || currentGuess.length === 0}
-      >
-        ←
-      </button>
-      <button
-        className="letter-key submit"
-        onClick={onSubmit}
-        disabled={disabled || currentGuess.length === 0}
-      >
-        Submit
-      </button>
+        {row3.map((letter) => (
+          <button
+            key={letter}
+            className="letter-key w-10 h-10 rounded bg-gray-200 hover:bg-gray-300 disabled:opacity-50"
+            onClick={() => onLetterClick(letter)}
+            disabled={disabled}
+          >
+            {letter}
+          </button>
+        ))}
+        <button
+          className="letter-key backspace w-16 h-10 rounded bg-red-200 hover:bg-red-300 disabled:opacity-50 text-sm"
+          onClick={onBackspace}
+          disabled={disabled || currentGuess.length === 0}
+        >
+          DELETE
+        </button>
+      </div>
+      <div className="flex justify-center">
+        <button
+          className="letter-key submit w-96 h-10 rounded bg-green-500 hover:bg-green-600 disabled:opacity-50 text-white"
+          onClick={onSubmit}
+          disabled={disabled || currentGuess.length === 0}
+        >
+          Submit
+        </button>
+      </div>
     </div>
   );
 };
@@ -244,14 +321,13 @@ const SpellingFlashCardGame = () => {
   >([]);
 
   // NEW: States for session progress tracking and adaptive difficulty adjustments
-  // sessionProgress holds overall session data including each word’s details.
   const [sessionProgress, setSessionProgress] = useState<any>(null);
-  // sessionStartTime to measure session duration.
   const [sessionStartTime, setSessionStartTime] = useState<number>(0);
-  // roundDisplayTime is the adjusted display time for the current word.
   const [roundDisplayTime, setRoundDisplayTime] = useState<number>(selectedDisplayTime as number);
-  // roundStartTime records when the flashcard flips (start of guessing) for response time calculation.
   const [roundStartTime, setRoundStartTime] = useState<number>(0);
+
+  // NEW: State for managing when the Hint button is available
+  const [hintAvailable, setHintAvailable] = useState<boolean>(false);
 
   const MAX_ATTEMPTS = 3;
 
@@ -264,8 +340,6 @@ const SpellingFlashCardGame = () => {
   }, []);
 
   // NEW: Adaptive Difficulty Adjustments
-  // This function loads past session history from localStorage and adjusts
-  // the display time for a given word based on its historical success rate.
   const adjustDisplayTime = (word: string): number => {
     const history = JSON.parse(localStorage.getItem("sessionProgressHistory") || "[]");
     let totalAttempts = 0;
@@ -284,12 +358,9 @@ const SpellingFlashCardGame = () => {
     if (totalAttempts === 0) return baseTime;
     const successRate = totalSuccess / totalAttempts;
     let newTime = baseTime;
-    // If the word is very well-known, reduce display time by 20%
     if (successRate > 0.8) {
       newTime = baseTime * 0.8;
-    }
-    // If the word is challenging, increase display time by 20%
-    else if (successRate < 0.5) {
+    } else if (successRate < 0.5) {
       newTime = baseTime * 1.2;
     }
     return Math.max(1, Math.round(newTime));
@@ -311,7 +382,6 @@ const SpellingFlashCardGame = () => {
 
     const intervalId = setInterval(() => {
       setCountdown((prev) => {
-        // Start TTS when there are 3 seconds left
         if (prev === 3 && currentPair) {
           speakWord(currentPair.word).catch(console.error);
         }
@@ -346,23 +416,32 @@ const SpellingFlashCardGame = () => {
     return () => clearInterval(timerInterval);
   }, [gameStarted, gameOver]);
 
+  // NEW: Enable the Hint button 3 seconds into the guessing phase
+  useEffect(() => {
+    if (flipped) {
+      const timer = setTimeout(() => {
+        setHintAvailable(true);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [flipped]);
+
   // Starts a new round by selecting the next word from the available list.
   const startNewRound = () => {
-    // If no words remain, end the game successfully.
+    // Reset hint availability for the new round
+    setHintAvailable(false);
+    
     if (availableWords.length === 0) {
       setMessage("Congratulations! You completed all the words!");
       setGameOver(true);
       checkAndPromptHighScore();
       return;
     }
-    // Select the next word (first in the list) and remove it.
     const nextPair = availableWords[0];
     setCurrentPair(nextPair);
     setAvailableWords(availableWords.slice(1));
-    // NEW: Adjust the display time for this word based on historical performance.
     const adjustedTime = adjustDisplayTime(nextPair.word);
     setRoundDisplayTime(adjustedTime);
-    // Reset round-specific states.
     setFlipped(false);
     setCountdown(adjustedTime);
     setCurrentGuess("");
@@ -397,7 +476,6 @@ const SpellingFlashCardGame = () => {
 
     const isCorrect = currentGuess.toLowerCase() === currentPair.word.toLowerCase();
     const newAttempt = attempt + 1;
-    // Calculate response time in seconds (time from when the card flipped)
     const responseTime = roundStartTime ? Math.round((Date.now() - roundStartTime) / 1000) : 0;
     
     // If this round is complete (correct answer or max attempts reached), record the round data.
@@ -420,7 +498,6 @@ const SpellingFlashCardGame = () => {
       const baseScore = 25 * currentPair.word.length;
       const roundScore = Math.max(Math.floor(baseScore * (1 - 0.2 * attempt)), 0);
       setScore((prev) => prev + roundScore);
-      // Also update session total score
       setSessionProgress((prev: any) => ({
         ...prev,
         totalScore: prev.totalScore + roundScore
@@ -440,6 +517,10 @@ const SpellingFlashCardGame = () => {
     } else {
       setGuessHistory([...guessHistory, currentGuess]);
       setAttempt(newAttempt);
+      // NEW: If the first attempt is incorrect, ensure the Hint button is enabled.
+      if (newAttempt === 1 && !hintAvailable) {
+        setHintAvailable(true);
+      }
       if (newAttempt >= MAX_ATTEMPTS) {
         setMessage(`The correct word was "${currentPair.word}".`);
         setTimeout(() => {
@@ -502,71 +583,33 @@ const SpellingFlashCardGame = () => {
     setAttempt(0);
     setMessage("");
     setShowCelebration(false);
-    // Reset gameStarted so that the settings screen is shown again.
     setGameStarted(false);
   };
 
   // Renders a row for a guess with feedback for each letter.
   const renderGuessRow = (guess: string) => {
-    if (!currentPair) return null;
-
-    const totalCells = Math.max(currentPair.word.length, guess.length);
-    const targetWord = currentPair.word.toLowerCase();
-    
-    // Create array to track which letters have been matched
-    const matchedIndices = new Set<number>();
-    
-    // First pass - find exact matches (green)
-    const cellStates = Array(totalCells).fill('none');
-    for (let i = 0; i < guess.length; i++) {
-      const guessedLetter = guess[i].toLowerCase();
-      if (i < targetWord.length && guessedLetter === targetWord[i]) {
-        cellStates[i] = 'correct';
-        matchedIndices.add(i);
-      }
-    }
-
-    // Second pass - find letters in wrong position (yellow)
-    for (let i = 0; i < guess.length; i++) {
-      if (cellStates[i] === 'correct') continue;
-      
-      const guessedLetter = guess[i].toLowerCase();
-      
-      // Check if this letter exists in the target word in an unmatched position
-      for (let j = 0; j < targetWord.length; j++) {
-        if (!matchedIndices.has(j) && guessedLetter === targetWord[j]) {
-          cellStates[i] = 'wrong-position';
-          matchedIndices.add(j);
-          break;
-        }
-      }
-      
-      // If not found, mark as incorrect
-      if (cellStates[i] === 'none') {
-        cellStates[i] = 'incorrect';
-      }
-    }
-
+    const totalCells = Math.max(currentPair?.word.length || 0, guess.length);
     return (
       <div className="flex justify-center gap-2">
         {Array.from({ length: totalCells }).map((_, index) => {
+          const expectedLetter =
+            index < (currentPair?.word.length || 0) ? currentPair?.word[index] : null;
           const guessedLetter = guess[index] || "";
-          let cellClass = "bg-white text-black"; // default for empty cells
-
-          if (guessedLetter) {
-            switch (cellStates[index]) {
-              case 'correct':
-                cellClass = "bg-green-500 text-white";
-                break;
-              case 'wrong-position':
-                cellClass = "bg-yellow-500 text-white";
-                break;
-              case 'incorrect':
-                cellClass = "bg-gray-300 text-black";
-                break;
+          let cellClass = "";
+          if (expectedLetter !== null) {
+            if (!guessedLetter) {
+              cellClass = "bg-red-500 text-white";
+            } else if (
+              expectedLetter &&
+              guessedLetter.toLowerCase() === expectedLetter.toLowerCase()
+            ) {
+              cellClass = "bg-green-500 text-white";
+            } else {
+              cellClass = "bg-gray-300 text-black";
             }
+          } else {
+            cellClass = "bg-gray-300 text-black";
           }
-
           return (
             <div
               key={index}
@@ -608,7 +651,6 @@ const SpellingFlashCardGame = () => {
       return;
     }
     setSettingsError("");
-    // Reset game states.
     setScore(0);
     setGameOver(false);
     setPlayerName("");
@@ -619,10 +661,8 @@ const SpellingFlashCardGame = () => {
     setAttempt(0);
     setMessage("");
     setShowCelebration(false);
-    // Initialize timers.
     setCountdown(selectedDisplayTime);
     setGlobalTimer(selectedSessionDuration * 60);
-    // NEW: Initialize session progress tracking.
     const newSessionProgress = {
       sessionId: new Date().toISOString(),
       totalScore: 0,
@@ -631,11 +671,9 @@ const SpellingFlashCardGame = () => {
     };
     setSessionProgress(newSessionProgress);
     setSessionStartTime(Date.now());
-    // Shuffle the word pool and store in state.
     const shuffledWords = shuffleArray([...wordPairs]);
     setAvailableWords(shuffledWords);
     setInitialWordCount(shuffledWords.length);
-    // Start the game.
     setGameStarted(true);
   };
 
@@ -647,14 +685,12 @@ const SpellingFlashCardGame = () => {
       const finalSessionProgress = {
         ...sessionProgress,
         duration: duration,
-        totalScore: score, // update total score from state
+        totalScore: score,
       };
       setSessionProgress(finalSessionProgress);
-      // Save session progress to localStorage history
       const history = JSON.parse(localStorage.getItem("sessionProgressHistory") || "[]");
       history.push(finalSessionProgress);
       localStorage.setItem("sessionProgressHistory", JSON.stringify(history));
-      // Export session progress as JSON file (simulating saving to /artifacts/session-progress.json)
       exportSessionProgress(finalSessionProgress);
     }
   }, [gameOver]);
@@ -762,7 +798,7 @@ const SpellingFlashCardGame = () => {
                 <p className="mt-2 text-2xl font-bold">{countdown}</p>
               </div>
               {/* Back of the card: Spelling view */}
-              <div className="flip-card-back bg-white p-8 rounded-lg shadow-lg">
+              <div className="flip-card-back bg-white p-3 rounded-lg shadow-lg">
                 <div className="text-center mb-4">
                   <span
                     className={`text-2xl font-bold ${
@@ -787,7 +823,8 @@ const SpellingFlashCardGame = () => {
                   ))}
                 </div>
                 {message && <p className="mb-2 text-lg text-center">{message}</p>}
-                {!gameOver && attempt < MAX_ATTEMPTS && (
+                {/* Remove the old hint button section */}
+                {!gameOver && attempt < MAX_ATTEMPTS && currentPair && (
                   <div className="flex flex-col items-center gap-4">
                     <CurrentGuessRow word={currentPair?.word || ""} currentGuess={currentGuess} />
                     <VirtualKeyboard
@@ -796,6 +833,8 @@ const SpellingFlashCardGame = () => {
                       onSubmit={handleGuessSubmit}
                       currentGuess={currentGuess}
                       disabled={gameOver}
+                      onHint={() => speakPattern(currentPair?.word || "")}
+                      hintAvailable={hintAvailable}
                     />
                   </div>
                 )}

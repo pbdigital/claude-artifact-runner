@@ -1,12 +1,12 @@
 [
-  { "word": "Away", "pattern": "a-way" },
-  { "word": "Stay", "pattern": "st-ay" },
-  { "word": "Today", "pattern": "to-day" },
-  { "word": "Delay", "pattern": "de-lay" },
-  { "word": "Again", "pattern": "a-gain" },
-  { "word": "Drain", "pattern": "dr-ain" },
-  { "word": "Waist", "pattern": "wa-ist" },
-  { "word": "Faith", "pattern": "f-aith" },
-  { "word": "Strain", "pattern": "str-ain" },
-  { "word": "Paint", "pattern": "p-aint" }
+  { "word": "Paint", "pattern": "p-aint" },
+  { "word": "Spoil", "pattern": "sp-oil" },
+  { "word": "Joint", "pattern": "j-oint" },
+  { "word": "Moist", "pattern": "m-oist" },
+  { "word": "Noise", "pattern": "n-oise" },
+  { "word": "Royal", "pattern": "r-oyal" },
+  { "word": "Loyal", "pattern": "l-oyal" },
+  { "word": "Enjoy", "pattern": "en-joy" },
+  { "word": "Destroy", "pattern": "de-stroy" },
+  { "word": "Employ", "pattern": "em-ploy" }
 ]
