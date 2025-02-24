@@ -10,7 +10,7 @@
  * New Features Added:
  * 1. Session Progress Tracking:
  *    - Records session data (session ID, total score, duration, and per-word details)
- *      and “saves” the data as a JSON file (session-progress.json) at session end.
+ *      and "saves" the data as a JSON file (session-progress.json) at session end.
  *
  * 2. Adaptive Difficulty Adjustments:
  *    - Adjusts the display time for each word based on the historical success rate 
@@ -426,6 +426,31 @@ const SpellingFlashCardGame = () => {
     }
   }, [flipped]);
 
+  // NEW: Add keyboard event listener
+  useEffect(() => {
+    const handleKeyPress = (event: KeyboardEvent) => {
+      if (!gameStarted || gameOver || !flipped || attempt >= MAX_ATTEMPTS) return;
+
+      // Handle letter keys (a-z, A-Z)
+      if (/^[a-zA-Z]$/.test(event.key)) {
+        handleLetterClick(event.key.toUpperCase());
+      }
+      // Handle backspace/delete
+      else if (event.key === 'Backspace' || event.key === 'Delete') {
+        handleBackspace();
+      }
+      // Handle enter/return for submit
+      else if (event.key === 'Enter') {
+        if (currentGuess.length > 0) {
+          handleGuessSubmit();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [gameStarted, gameOver, flipped, attempt, currentGuess]); // Add dependencies
+
   // Starts a new round by selecting the next word from the available list.
   const startNewRound = () => {
     // Reset hint availability for the new round
@@ -588,28 +613,68 @@ const SpellingFlashCardGame = () => {
 
   // Renders a row for a guess with feedback for each letter.
   const renderGuessRow = (guess: string) => {
-    const totalCells = Math.max(currentPair?.word.length || 0, guess.length);
+    if (!currentPair?.word) return null;
+    
+    const totalCells = Math.max(currentPair.word.length, guess.length);
+    const targetWord = currentPair.word.toLowerCase();
+    
+    // First pass: Find exact matches to mark green
+    // and count remaining letters for yellow matches
+    const letterCounts = new Map();
+    const matchStatus = new Array(totalCells).fill('none');
+    
+    // Count available letters in target word (excluding exact matches)
+    for (let i = 0; i < targetWord.length; i++) {
+      if (guess[i]?.toLowerCase() !== targetWord[i]) {
+        const letter = targetWord[i];
+        letterCounts.set(letter, (letterCounts.get(letter) || 0) + 1);
+      }
+    }
+
+    // Mark exact matches as green
+    for (let i = 0; i < totalCells; i++) {
+      const guessedLetter = guess[i]?.toLowerCase() || '';
+      const targetLetter = targetWord[i];
+      
+      if (guessedLetter === targetLetter) {
+        matchStatus[i] = 'correct';
+      }
+    }
+
+    // Second pass: Mark yellow for correct letters in wrong positions
+    for (let i = 0; i < totalCells; i++) {
+      if (matchStatus[i] === 'correct') continue;
+      
+      const guessedLetter = guess[i]?.toLowerCase() || '';
+      
+      if (guessedLetter && letterCounts.get(guessedLetter) > 0) {
+        matchStatus[i] = 'wrong-position';
+        letterCounts.set(guessedLetter, letterCounts.get(guessedLetter) - 1);
+      } else {
+        matchStatus[i] = 'incorrect';
+      }
+    }
+
     return (
       <div className="flex justify-center gap-2">
         {Array.from({ length: totalCells }).map((_, index) => {
-          const expectedLetter =
-            index < (currentPair?.word.length || 0) ? currentPair?.word[index] : null;
           const guessedLetter = guess[index] || "";
           let cellClass = "";
-          if (expectedLetter !== null) {
-            if (!guessedLetter) {
-              cellClass = "bg-red-500 text-white";
-            } else if (
-              expectedLetter &&
-              guessedLetter.toLowerCase() === expectedLetter.toLowerCase()
-            ) {
-              cellClass = "bg-green-500 text-white";
-            } else {
-              cellClass = "bg-gray-300 text-black";
-            }
-          } else {
-            cellClass = "bg-gray-300 text-black";
+
+          switch (matchStatus[index]) {
+            case 'correct':
+              cellClass = "bg-green-500 text-white"; // Green for correct position
+              break;
+            case 'wrong-position':
+              cellClass = "bg-yellow-500 text-white"; // Yellow for correct letter, wrong position
+              break;
+            case 'incorrect':
+              cellClass = guessedLetter 
+                ? "bg-gray-400 text-white"  // Gray for incorrect letters
+                : "bg-red-500 text-white";  // Red for empty spaces
+              break;
           }
+
           return (
             <div
               key={index}
@@ -691,23 +756,8 @@ const SpellingFlashCardGame = () => {
       const history = JSON.parse(localStorage.getItem("sessionProgressHistory") || "[]");
       history.push(finalSessionProgress);
       localStorage.setItem("sessionProgressHistory", JSON.stringify(history));
-      exportSessionProgress(finalSessionProgress);
     }
   }, [gameOver]);
-
-  // NEW: Utility function to export session progress as a JSON file.
-  const exportSessionProgress = (sessionData: any) => {
-    const dataStr = JSON.stringify({ sessions: [sessionData] }, null, 2);
-    const blob = new Blob([dataStr], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "session-progress.json";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
 
   // NEW: Start Screen Component.
   if (!gameStarted) {
